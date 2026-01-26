@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="裝備管制">
+    <meta name="theme-color" content="#F2F2F7">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png"> <!-- 範例圖示 -->
+
+    <title>115年 裝備管制 (App Ver)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Noto Sans TC', system-ui, sans-serif;
+            background: #F2F2F7;
+            padding: 0; margin: 0;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overscroll-behavior-y: none; /* 防止 iOS 下拉刷新效果 */
+        }
+
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .card-base {
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.03);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .card-base:active { transform: scale(0.98); }
+
+        /* Form Controls */
+        .glass-select, .glass-input {
+            appearance: none;
+            background-color: #EBEBF0;
+            border: none;
+            border-radius: 10px;
+            height: 38px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            width: 100%;
+        }
+        .glass-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding: 0 32px 0 12px;
+        }
+        .glass-input { padding: 0 12px 0 36px; }
+        .glass-input:focus, .glass-select:focus { background: #fff; box-shadow: 0 0 0 2px #007AFF; outline: none; }
+
+        /* Layout */
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+            padding-top: max(env(safe-area-inset-top), 8px);
+        }
+        .main-content { padding-bottom: 80px; animation: fadeIn 0.4s ease-out; }
+
+        /* Status Colors */
+        .theme-weap { --main-col: #ff3b30; } 
+        .theme-comm { --main-col: #00b4d8; }
+        .theme-chem { --main-col: #30b0c0; }
+        .theme-truck { --main-col: #8e8e93; }
+        .theme-eng { --main-col: #ff9500; }
+
+        .badge-task { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; display: inline-block; }
+        .task-entry { background: #ffebeb; color: #ff3b30; }
+        .task-main { background: #e0f7fa; color: #00b4d8; }
+        .task-weekly { background: #e8f5e9; color: #34c759; }
+
+        .sys-card { 
+            border-radius: 10px; margin-top: 8px;
+            background: #F9F9F9; border: 1px solid #E5E5EA;
+            border-left: 4px solid var(--main-col);
+        }
+        .stats-tag { font-size: 11px; color: #8E8E93; background: #F2F2F7; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+
+        /* New Feature: Countdown Card */
+        .countdown-card {
+            background: linear-gradient(135deg, #007AFF 0%, #0055b3 100%);
+            color: white; padding: 16px; border-radius: 16px;
+            margin-bottom: 16px; box-shadow: 0 8px 16px rgba(0, 122, 255, 0.25);
+        }
+
+        /* Checkbox Interaction */
+        .checked-item {
+            opacity: 0.4;
+            text-decoration: line-through;
+            background-color: #E5E5EA !important;
+        }
+
+        .serial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); 
+            gap: 6px; padding: 10px;
+            background: #fff; border-top: 1px solid #eee;
+        }
+        .serial-chip {
+            background: #f2f2f7; color: #1c1c1e;
+            font-family: 'SF Mono', 'Menlo', monospace; font-size: 12px;
+            padding: 8px 4px; text-align: center; border-radius: 8px; /* Bigger touch area */
+            border: 1px solid rgba(0,0,0,0.05); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            transition: all 0.2s;
+        }
+        .serial-chip.highlight { background: #fff9c4; color: #000; border-color: #fbc02d; font-weight: bold; }
+        .serial-chip:active { transform: scale(0.95); }
+
+        .chevron { transition: transform 0.25s; }
+        .expanded .chevron { transform: rotate(180deg); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .modal-bg { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+        .textarea-glass { background: #f2f2f7; width: 100%; border-radius: 12px; padding: 12px; border: none; font-family: monospace; font-size: 13px; }
+        
+        #toast { 
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(30,30,30,0.95); color: #fff; padding: 12px 24px; 
+            border-radius: 50px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            font-size: 14px; font-weight: 600; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 8px; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar glass-panel shadow-sm">
+        <div class="max-w-2xl mx-auto w-full px-4 pb-3">
+            <div class="flex justify-between items-center py-2">
+                <div class="flex gap-2 items-center">
+                    <div class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center text-lg shadow">⚙️</div>
+                    <div>
+                        <div class="font-bold text-lg leading-none text-black">裝備管制</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5">APP MODE</div>
+                    </div>
+                </div>
+                <button onclick="openSettings()" class="text-blue-600 font-medium text-sm px-2 active:opacity-60">設定</button>
+            </div>
+            <!-- Collapsible Filters for cleaner Mobile Look -->
+            <div id="filterSection" class="grid grid-cols-2 gap-2 mb-2">
+                <select id="selMonth" onchange="applyFilters()" class="glass-select"><option value="all">📅 所有月份</option></select>
+                <select id="selCat" onchange="applyFilters()" class="glass-select">
+                    <option value="all">📂 所有類別</option>
+                    <option value="兵器">兵器</option><option value="通信">通信</option>
+                    <option value="化學">化學</option><option value="輪車">輪車</option><option value="工兵">工兵</option>
+                </select>
+                <select id="selType" onchange="applyFilters()" class="glass-select">
+                    <option value="all">📋 所有任務</option>
+                    <option value="進廠">進廠</option><option value="連主官裝備檢查">連主檢</option><option value="週保養">週保養</option>
+                </select>
+                <select id="selEquip" onchange="applyFilters()" class="glass-select"><option value="all">📦 指定裝備...</option></select>
+            </div>
+            <div class="relative">
+                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+                <input type="text" id="searchInput" placeholder="搜尋..." class="glass-input">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-2xl mx-auto px-4 main-content" id="mainContainer">
+        <!-- Next Mission Countdown (New Feature) -->
+        <div id="countdownContainer" class="hidden"></div>
+
+        <div id="cardContainer" class="space-y-4"></div>
+        
+        <div id="noData" class="hidden flex flex-col items-center justify-center pt-20 pb-10 text-gray-400">
+            <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-3 opacity-50">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            </div>
+            <span class="text-sm font-medium">無符合資料</span>
+            <button onclick="resetFilters()" class="mt-4 text-blue-500 text-sm font-bold">重置篩選</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-[60] modal-bg flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg max-h-[90vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-900">資料庫編輯</h3>
+                <button onclick="closeSettings()" class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-lg">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 flex-1">
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+                    ⚠️ <b>注意：</b> 修改內容會自動儲存於此裝置。
+                </div>
+                <textarea id="jsonEditorData" class="textarea-glass h-48"></textarea>
+                <textarea id="jsonEditorSchedule" class="textarea-glass h-32"></textarea>
+            </div>
+            <div class="p-4 border-t flex justify-between gap-3 bg-white">
+                <button onclick="resetToDefaults()" class="px-4 py-2 text-red-500 font-semibold text-sm">恢復預設</button>
+                <button onclick="saveSettings()" class="px-6 py-2 bg-black text-white font-semibold text-sm rounded-lg shadow-lg active:scale-95 transition">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+        <span id="toastMsg">已複製！</span>
+    </div>
+
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed', err));
+            });
+        }
+
+        const CATEGORIES = { '兵器': { css: 'theme-weap' }, '通信': { css: 'theme-comm' }, '化學': { css: 'theme-chem' }, '輪車': { css: 'theme-truck' }, '工兵': { css: 'theme-eng' } };
+        const DEFAULT_DATA = { /* ... keep your existing large data object ... */ 
+            T74: { name: 'T74 排用機槍', cat: '兵器', ids: '007231,007447,007496,007501,007544,007654,009661,009971', groups: [1,1,2,2,2,3,3,3] },
+            T75: { name: 'T75 班用機槍', cat: '兵器', ids: '008727,008749,008788,008805,008870,008899,008950,009043,009097,009109,012244,012247,012459,012610,012627,012864,012865,012880,012919,012925,012928,012931,012933,012943,012946,012954,012959,012962,012964,012967,013026,013029,013031,013032,013038,013039', groups: Array(36).fill(0).map((_, i) => i < 18 ? 'A' : 'B') },
+            T65K2: { name: 'T65K2 步槍', cat: '兵器', ids: '186074,187921,193648,207145,209263,209439,209697,209823,219834,220007,221303,221554,221566,221640,224376,230470,231016,231849,232622,234718,234742,236236,236465,236967,237338,314846,332587,332607,332668,332754,332762,337624,362245,362411,362415,362676,363053,364122,364896,367128,367730,368657,369550,370013,370200,370374,383020,383715,385207,385332,386038,386251,386399,388131,389145,389516,390010,390539,391124,391958,392012,392166,392167,393872,393947,394347,394468,394681,394777,394861,394863,394902,394907,394913,394923,395042,395065,395109,395113,395167,395348,395555,395671,395860,396172,396176,396207,396356,396359,396597,397068,397153,397273,397314,398005,398192,398389,398432,398934,399146,399327,399595,400655,400847,401766,402894,403128,403843,404390,405120,405205,405700,406970,407492,407620,408250' },
+            T85: { name: 'T85 榴彈發射器', cat: '兵器', ids: '000032,000155,001750,001780,001998,008454,008834,008890,009004,009759,010532,010681,011186,011293,011358,011498,011522,011662,011820,011906,012571,012589,012695,012760,012775,012845,014580,016641,018164,018390,019120,019191,019202,019261,019674,021606' },
+            M1911A1: { name: 'M1911A1 手槍', cat: '兵器', ids: '51-06411' },
+            M1911: { name: 'M1911 手槍', cat: '兵器', ids: '124141,1546783,1810911,1943969,1952496,2215347,2226406,954710' },
+            M8A1: { name: 'M8A1 毒氣警報器', cat: '化學', ids: '1010413' },
+            'LS-920': { name: 'LS-920 消毒器', cat: '化學', ids: '513,514' },
+            'T3-75': { name: 'T3-75 防毒面具', cat: '化學', bulk: 161 },
+            M256: { name: 'M256 偵檢包', cat: '化學', bulk: 1 },
+            WAR_FILTER: { name: '戰備濾毒罐', cat: '化學', bulk: 161 },
+            '62_FILTER': { name: '62式濾毒罐', cat: '化學', bulk: 161 },
+            'T4-86': { name: 'T4-86 消除包', cat: '化學', bulk: 161 },
+            'MHR-112': { name: 'MHR-112 無線電機', cat: '通信', ids: 'LV11203353,LV11203354,LV11203355,LV11203356,LV11203357,LV11203358,LV11203359,LV11203360,LV11203361,LV11203362,LV11203363,LV11203364,LV11203365,LV11203366,LV11203367,LV11203368,LV11203369,LV11203370,LV11203371,LV11203372,LV11203373' },
+            'PRC-37C': { name: 'CS/PRC-37C 無線電機', cat: '通信', ids: '22250' },
+            'KY-2000A': { name: 'KY-2000A 電子話機', cat: '通信', ids: '714-T02378,714-T02422,714-T02628,714-T02647,714-T03864,714-T13385,714-T13867,714-T13873,714-T14184,714-T14238,714-T15582,714-T15596,714-T14095,714-T17758,714-T17764,714-T03057' },
+            TRUCK: { name: '3.5噸載重車', cat: '輪車', ids: '軍3-23993' },
+            COMPASS: { name: '指北針', cat: '工兵', ids: 'V-109J-0D07-0374,900288,9105443,9100940' },
+            TS71: { name: 'TS-71 八倍望遠鏡', cat: '工兵', ids: '920593,920594,930926,931142,931501,931863,94A031182,94A030419,94A030713' }
+        };
+        const DEFAULT_SCHEDULE = {1:{m:19,t:20,w:21,f:23},2:{m:23,t:24,w:25,f:27},3:{m:23,t:24,w:25,f:27},4:{m:20,t:21,w:22,f:24},5:{m:25,t:26,w:27,f:29},6:{m:22,t:23,w:24,f:26},7:{m:20,t:21,w:22,f:24},8:{m:24,t:25,w:26,f:28},9:{m:21,t:22,w:23,f:25},10:{m:19,t:20,w:21,f:23},11:{m:23,t:24,w:25,f:27},12:{m:21,t:22,w:23,f:25}};
+
+        let DATA = {}, SCHEDULE = {};
+        let allData = [], filteredData = [], currentYear = 115;
+
+        // --- Core Functions ---
+        function loadData() {
+            const savedData = localStorage.getItem('MY_EQUIP_DATA');
+            const savedSched = localStorage.getItem('MY_SCHEDULE');
+            DATA = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+            SCHEDULE = savedSched ? JSON.parse(savedSched) : JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+            Object.keys(DATA).forEach(k => { if (DATA[k].ids && !DATA[k].list) DATA[k].list = DATA[k].ids.split(','); });
+        }
+
+        function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+        function checkIsHoliday(d) { return d.getMonth() === 0 && d.getDate() === 1; }
+        function isWorkDay(d) { return !isWeekend(d) && !checkIsHoliday(d); }
+        function getWorkDay(y, m, n) {
+            let d = new Date(y, m-1, 1), c = 0;
+            while (d.getMonth() === m-1) { if (isWorkDay(d)) { c++; if (c === n) return d; } d.setDate(d.getDate() + 1); }
+            return d;
+        }
+        function getWeekday(y, m, n, wd) {
+            let d = new Date(y, m-1, 1), c = 0;
+            while (d.getMonth() === m-1) { if (d.getDay() === wd) { c++; if (c === n) return d; } d.setDate(d.getDate() + 1); }
+            return null;
+        }
+        function getFridays(y, m) {
+            let r = [], d = new Date(y, m-1, 1);
+            while (d.getMonth() === m-1) { if (d.getDay() === 5) r.push(new Date(d)); d.setDate(d.getDate() + 1); }
+            return r;
+        }
+        function fmt(d) {
+            const m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+            return { str: `${m}.${day}`, day: ['日','一','二','三','四','五','六'][d.getDay()], key: parseInt(`${d.getFullYear()}${m}${day}`), obj: d };
+        }
+
+        function buildSchedule() {
+            let rawEvents = [];
+            const y = currentYear + 1911; 
+            for (let m = 1; m <= 12; m++) {
+                const s = SCHEDULE[m]; if (!s) continue; 
+                const mainMon = new Date(y, m-1, s.m), mainTue = new Date(y, m-1, s.t), mainWed = new Date(y, m-1, s.w), mainFriKey = fmt(new Date(y, m-1, s.f)).key;
+                const wd1 = getWorkDay(y, m, 1), wd2 = getWorkDay(y, m, 2);
+                
+                const add = (d, t, sys, filterFn) => {
+                    if (!d) return;
+                    let finalDate = new Date(d);
+                    while (checkIsHoliday(finalDate) || isWeekend(finalDate)) finalDate.setDate(finalDate.getDate() + 1);
+                    const sysData = DATA[sys]; if(!sysData) return;
+                    let ids = sysData.list || [];
+                    if(filterFn) ids = ids.filter(filterFn);
+                    rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
+                };
+
+                const eg = m % 3 || 3;
+                add(wd1, '進廠', 'T74', (_, i) => DATA.T74.groups[i] === eg);
+                add(mainWed, '連主官裝備檢查', 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                add(wd1, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'A');
+                add(wd2, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'B');
+                add(mainWed, '連主官裝備檢查', 'T65K2');
+                const w1f = getWeekday(y, m, 1, 5);
+                if (w1f && fmt(w1f).key !== mainFriKey) add(w1f, `${m}月第1週週保養`, 'T65K2');
+                ['T85','M1911A1','M1911'].forEach(s => add(mainWed, '連主官裝備檢查', s));
+                ['TRUCK', 'COMPASS', 'TS71', 'KY-2000A'].forEach(s => add(mainTue, '連主官裝備檢查', s));
+                ['MHR-112','PRC-37C'].forEach(s => { add(wd1, '進廠', s); add(mainTue, '連主官裝備檢查', s); });
+                ['M8A1','LS-920'].forEach(s => { add(wd2, '進廠', s); add(mainMon, '連主官裝備檢查', s); });
+                ['T3-75','M256','WAR_FILTER','62_FILTER','T4-86'].forEach(s => add(mainMon, '連主官裝備檢查', s));
+                
+                const daysInMonth = new Date(y, m, 0).getDate();
+                const isBigMonth = daysInMonth === 31;
+                getFridays(y, m).forEach((f, idx, arr) => {
+                    if (fmt(f).key === mainFriKey) return;
+                    const w = Math.ceil(f.getDate() / 7);
+                    ['M8A1','LS-920','MHR-112','PRC-37C','KY-2000A','TRUCK'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
+                    if ((isBigMonth && idx === arr.length - 1) || (!isBigMonth && w === 1)) add(f, `${m}月第${w}週週保養`, 'T3-75');
+                    if (w === 3) {
+                         ['M1911', 'M1911A1', 'T85'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
+                         add(f, `${m}月第${w}週週保養`, 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                    }
+                });
+            }
+
+            let truckDate = new Date(2025, 7, 25);
+            let cycleIdx = 0;
+            const cyclePattern = ['B保', 'S保', 'A保', 'S保'];
+            for(let i=0; i<40; i++) {
+                if (truckDate.getFullYear() > y) break; 
+                let actualDate = new Date(truckDate);
+                while(isWeekend(actualDate) || checkIsHoliday(actualDate)) actualDate.setDate(actualDate.getDate() + 1);
+                if (actualDate.getFullYear() === y) {
+                    const taskName = `輪車進廠 (${cyclePattern[cycleIdx % 4]})`; 
+                    if (DATA['TRUCK']) rawEvents.push({ m: actualDate.getMonth() + 1, d: fmt(actualDate), t: taskName, sys: 'TRUCK', cat: '輪車', ids: DATA['TRUCK'].list||[], bulk: 0, ts: actualDate.getTime() });
+                }
+                truckDate.setMonth(truckDate.getMonth() + 6);
+                cycleIdx++;
+            }
+            
+            const catOrder = ['兵器', '通信', '化學', '工兵', '輪車'];
+            const groupedMap = new Map();
+            rawEvents.forEach(e => {
+                const k = `${e.d.key}_${e.t}`;
+                if (!groupedMap.has(k)) groupedMap.set(k, { m: e.m, d: e.d, t: e.t, ts: e.ts, items: [] });
+                const group = groupedMap.get(k);
+                group.items.push({ sys: e.sys, ids: e.ids, bulk: e.bulk, cat: e.cat });
+            });
+
+            allData = Array.from(groupedMap.values()).map(group => {
+                group.items.sort((a, b) => {
+                    const idxA = catOrder.indexOf(a.cat), idxB = catOrder.indexOf(b.cat);
+                    if (idxA !== idxB) return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                    return DATA[a.sys].name.localeCompare(DATA[b.sys].name, 'zh-TW');
+                });
+                return group;
+            }).sort((a, b) => a.d.key - b.d.key);
+        }
+
+        // --- Features: Countdown ---
+        function updateCountdown() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            // Find next event (ts >= today)
+            const nextEvent = allData.find(e => e.ts >= today.getTime());
+            const el = document.getElementById('countdownContainer');
+            
+            if (nextEvent) {
+                const diffTime = Math.abs(nextEvent.ts - today.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                let msg = diffDays === 0 ? "⚠️ 任務就在今天！" : `⏳ 距離下次任務還有 <b>${diffDays}</b> 天`;
+                
+                el.className = 'countdown-card';
+                el.innerHTML = `
+                    <div class="text-sm opacity-80 mb-1">NEXT MISSION</div>
+                    <div class="text-xl font-bold mb-1">${nextEvent.t}</div>
+                    <div class="flex justify-between items-end">
+                        <div class="text-sm">${currentYear}/${nextEvent.d.str} (週${nextEvent.d.day})</div>
+                        <div class="bg-white/20 px-2 py-1 rounded text-sm">${msg}</div>
+                    </div>
+                `;
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- Filter & Render ---
+        function populateSelectors() {
+            const selMonth = document.getElementById('selMonth');
+            selMonth.innerHTML = '<option value="all">📅 所有月份</option>';
+            for(let i=1; i<=12; i++) {
+                const opt = document.createElement('option');
+                opt.value = i; opt.textContent = `${i}月`;
+                selMonth.appendChild(opt);
+            }
+            const selEquip = document.getElementById('selEquip');
+            selEquip.innerHTML = '<option value="all">📦 指定裝備 (全部)</option>';
+            Object.keys(DATA).sort((a,b) => DATA[a].name.localeCompare(DATA[b].name, 'zh-TW')).forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k; opt.textContent = DATA[k].name;
+                selEquip.appendChild(opt);
+            });
+        }
+
+        function applyFilters() {
+            const m = document.getElementById('selMonth').value;
+            const c = document.getElementById('selCat').value;
+            const t = document.getElementById('selType').value;
+            const e = document.getElementById('selEquip').value;
+            const q = document.getElementById('searchInput').value.trim();
+
+            filteredData = allData.filter(row => {
+                if (m !== 'all' && row.m != m) return false;
+                if (t !== 'all') {
+                    if (t === '進廠') { if (row.t !== '進廠' && !row.t.includes('輪車進廠')) return false; }
+                    else if (t === '連主官裝備檢查') { if (row.t !== '連主官裝備檢查') return false; }
+                    else if (t === '週保養') { if (!row.t.includes('週保養')) return false; }
+                    else { if (row.t !== t) return false; }
+                }
+                return row.items.some(it => {
+                    if (c !== 'all' && it.cat !== c) return false;
+                    if (e !== 'all' && it.sys !== e) return false;
+                    if (q) {
+                        const nameMatch = DATA[it.sys].name.includes(q);
+                        const idMatch = it.ids && it.ids.some(id => id.includes(q));
+                        if (!nameMatch && !idMatch) return false;
+                    }
+                    return true;
+                });
+            });
+
+            renderList(q, c, e);
+        }
+
+        function renderList(searchQuery, catFilter, equipFilter) {
+            const container = document.getElementById('cardContainer');
+            const noData = document.getElementById('noData');
+            container.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                noData.classList.remove('hidden');
+                return;
+            }
+            noData.classList.add('hidden');
+            
+            const fragment = document.createDocumentFragment();
+
+            filteredData.forEach((row, i) => {
+                let taskClass = 'task-weekly';
+                if (row.t.includes('進廠') || row.t.includes('B保')) taskClass = 'task-entry';
+                else if (row.t === '連主官裝備檢查' || row.t.includes('S保')) taskClass = 'task-main';
+
+                const cardCats = new Set();
+                const cardItems = new Set();
+                let cardPieces = 0;
+
+                row.items.forEach(it => {
+                    if (catFilter !== 'all' && it.cat !== catFilter) return;
+                    if (equipFilter !== 'all' && it.sys !== equipFilter) return;
+                    if (searchQuery) {
+                         const nameMatch = DATA[it.sys].name.includes(searchQuery);
+                         const idMatch = it.ids && it.ids.some(id => id.includes(searchQuery));
+                         if (!nameMatch && !idMatch) return;
+                    }
+                    cardCats.add(it.cat);
+                    cardItems.add(it.sys);
+                    cardPieces += (it.bulk || (it.ids ? it.ids.length : 0));
+                });
+
+                const card = document.createElement('div');
+                card.className = `card-base p-4`;
+                
+                let innerHtml = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-xl font-bold text-black">${row.d.str}</span>
+                                <span class="text-xs text-gray-500 font-medium bg-gray-100 px-1.5 py-0.5 rounded">週${row.d.day}</span>
+                                <span class="badge-task ${taskClass}">${row.t}</span>
+                            </div>
+                            <div class="flex gap-2 text-xs text-gray-500 mt-1">
+                                <span>${cardCats.size} 類</span>·<span>${cardItems.size} 項</span>·<span class="text-blue-600 font-bold">共 ${cardPieces} 件</span>
+                            </div>
+                        </div>
+                        <button onclick="copy(${i})" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                        </button>
+                    </div>
+                `;
+
+                row.items.forEach((it, idx) => {
+                    if(catFilter !== 'all' && it.cat !== catFilter) return;
+                    if(equipFilter !== 'all' && it.sys !== equipFilter) return;
+                    const cnt = it.bulk || (it.ids ? it.ids.length : 0);
+                    const rowId = `sys-${i}-${idx}`;
+                    
+                    const isMatchName = searchQuery && DATA[it.sys].name.includes(searchQuery);
+                    const isMatchId = searchQuery && it.ids && it.ids.some(id => id.includes(searchQuery));
+                    if (searchQuery && !isMatchName && !isMatchId) return;
+
+                    const shouldExpand = searchQuery && (isMatchName || isMatchId);
+                    const catTheme = CATEGORIES[it.cat] || { css: 'theme-truck' }; 
+
+                    innerHtml += `
+                        <div id="row-${rowId}" class="sys-card ${catTheme.css} ${shouldExpand ? 'expanded' : ''} cursor-pointer overflow-hidden">
+                            <div class="flex justify-between items-center p-3" onclick="toggleSys('${rowId}')">
+                                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                                    <span class="font-bold text-[15px] text-gray-800 truncate">${DATA[it.sys].name}</span>
+                                    <span class="stats-tag flex-shrink-0">${cnt}</span>
+                                </div>
+                                <div class="text-gray-400 chevron flex-shrink-0 opacity-50 ml-2">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </div>
+                            </div>
+                    `;
+
+                    if (it.ids && it.ids.length > 0) {
+                        innerHtml += `<div id="list-${rowId}" class="${shouldExpand ? '' : 'hidden'} serial-grid">`;
+                        it.ids.forEach(id => {
+                            const highlight = searchQuery && id.includes(searchQuery);
+                            // Add check function
+                            innerHtml += `<div class="serial-chip ${highlight ? 'highlight' : ''}" onclick="toggleCheck(this)">${id}</div>`;
+                        });
+                        innerHtml += `</div>`;
+                    }
+                    innerHtml += `</div>`;
+                });
+                card.innerHTML = innerHtml;
+                fragment.appendChild(card);
+            });
+            container.appendChild(fragment);
+        }
+
+        // --- Feature: Tap to Check ---
+        window.toggleCheck = function(el) {
+            el.classList.toggle('checked-item');
+            // Haptic feedback if available
+            if (window.navigator && window.navigator.vibrate) { window.navigator.vibrate(10); }
+        }
+
+        // --- Copy Function (Enhanced for Fallback) ---
+        window.copy = function(i) {
+            const row = filteredData[i];
+            const c = document.getElementById('selCat').value;
+            const e = document.getElementById('selEquip').value;
+            const q = document.getElementById('searchInput').value.trim();
+
+            const validItems = row.items.filter(it => {
+                if (c !== 'all' && it.cat !== c) return false;
+                if (e !== 'all' && it.sys !== e) return false;
+                if (q) {
+                    const nameMatch = DATA[it.sys].name.includes(q);
+                    const idMatch = it.ids && it.ids.some(id => id.includes(q));
+                    if (!nameMatch && !idMatch) return false;
+                }
+                return true;
+            });
+
+            const cats = new Set(validItems.map(it => it.cat));
+            const items = new Set(validItems.map(it => it.sys));
+            const pieces = validItems.reduce((acc, it) => acc + (it.bulk || (it.ids ? it.ids.length : 0)), 0);
+
+            let txt = `【裝備管制通知】\n`;
+            txt += `📅 日期：${currentYear}/${row.d.str} (${row.d.day})\n`;
+            txt += `📝 任務：${row.t}\n`;
+            txt += `📊 統計：${cats.size}類 ${items.size}項 共${pieces}件\n`;
+            txt += `----------------\n`;
+            
+            validItems.forEach((it, idx) => {
+                const cnt = it.bulk || (it.ids ? it.ids.length : 0);
+                txt += `${idx+1}. [${it.cat}] ${DATA[it.sys].name} (${cnt})\n`;
+                if (it.ids && it.ids.length > 0) {
+                   txt += `   序號: ${it.ids.join(', ')}\n`;
+                }
+            });
+
+            // Modern & Fallback Copy Logic
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(() => showToast("已複製！")).catch(() => fallbackCopy(txt));
+            } else {
+                fallbackCopy(txt);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px"; textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                showToast(successful ? "已複製！" : "複製失敗");
+            } catch (err) { alert("瀏覽器不支援自動複製"); }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // --- Interactions ---
+        window.toggleSys = function(id) {
+            const content = document.getElementById(`list-${id}`);
+            const row = document.getElementById(`row-${id}`);
+            if(!content) return;
+            content.classList.toggle('hidden');
+            row.classList.toggle('expanded');
+        }
+
+        window.openSettings = function() {
+            document.getElementById('jsonEditorData').value = JSON.stringify(DATA, null, 2);
+            document.getElementById('jsonEditorSchedule').value = JSON.stringify(SCHEDULE, null, 2);
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        window.closeSettings = function() { document.getElementById('settingsModal').classList.add('hidden'); }
+        window.saveSettings = function() {
+            try {
+                const nD = JSON.parse(document.getElementById('jsonEditorData').value);
+                const nS = JSON.parse(document.getElementById('jsonEditorSchedule').value);
+                localStorage.setItem('MY_EQUIP_DATA', JSON.stringify(nD));
+                localStorage.setItem('MY_SCHEDULE', JSON.stringify(nS));
+                location.reload();
+            } catch (e) { alert('JSON 格式錯誤'); }
+        }
+        window.resetToDefaults = function() {
+            if(confirm('恢復預設值？')) {
+                localStorage.removeItem('MY_EQUIP_DATA');
+                localStorage.removeItem('MY_SCHEDULE');
+                location.reload();
+            }
+        }
+
+        function init() {
+            loadData();
+            buildSchedule();
+            populateSelectors();
+            updateCountdown();
+
+            let debounceTimer;
+            document.getElementById('searchInput').addEventListener('input', () => {
+                clearTimeout(debounceTimer); debounceTimer = setTimeout(applyFilters, 300);
+            });
+            const resizeObs = new ResizeObserver(() => {
+                const h = document.querySelector('.top-bar').offsetHeight;
+                document.getElementById('mainContainer').style.paddingTop = (h + 10) + 'px';
+            });
+            resizeObs.observe(document.querySelector('.top-bar'));
+            applyFilters();
+        }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
