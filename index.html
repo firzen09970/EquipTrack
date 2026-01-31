@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-    <title>裝備管制 (V13 Eng)</title>
+    <title>裝備管制 (V14 Filter)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -149,7 +149,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
                     <div>
                         <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
-                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V13 ENG</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V14 FILTER</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -354,7 +354,6 @@
                     let finalDate = new Date(d);
                     while (checkIsHoliday(finalDate) || isWeekend(finalDate)) finalDate.setDate(finalDate.getDate() + 1);
                     const sysData = DATA[sys]; if(!sysData) return;
-                    // 🔥 關鍵修正：確保 ids 是陣列
                     let ids = sysData.list || [];
                     if(filterFn) ids = ids.filter(filterFn);
                     rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
@@ -381,9 +380,12 @@
                     const w = Math.ceil(f.getDate() / 7);
                     ['M8A1','LS-920','MHR-112','PRC-37C','KY-2000A','TRUCK'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
                     if ((isBigMonth && idx === arr.length - 1) || (!isBigMonth && w === 1)) add(f, `${m}月第${w}週週保養`, 'T3-75');
+                    
+                    // 🔥 工兵每週二保養
                     if (w === 2) {
                         ['COMPASS', 'TS71'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
                     }
+
                     if (w === 3) {
                          ['M1911', 'M1911A1', 'T85'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
                          add(f, `${m}月第${w}週週保養`, 'T74', (_, i) => DATA.T74.groups[i] !== eg);
@@ -699,6 +701,7 @@
                             if (status === 'repair') extraClass = 'chip-repair';
                             else if (status === 'fault') extraClass = 'chip-fault';
                             
+                            // 這裡需要 stopPropagation 防止冒泡觸發 toggleSys
                             innerHtml += `<div class="serial-chip ${highlight ? 'highlight' : ''} ${extraClass}" onclick="event.stopPropagation(); handleSerialClick(this, '${id}')">${id}</div>`;
                         });
                         innerHtml += `</div>`;
@@ -819,6 +822,14 @@
             document.getElementById('toastMsg').innerText = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        window.toggleSys = function(id) {
+            const content = document.getElementById(`list-${id}`);
+            const row = document.getElementById(`row-${id}`);
+            if(!content) return;
+            content.classList.toggle('hidden');
+            row.classList.toggle('expanded');
         }
 
         window.openSettings = function() {
