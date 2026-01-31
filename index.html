@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-    <title>裝備管制 (V8 Fix)</title>
+    <title>裝備管制 (V13 Eng)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -40,8 +40,7 @@
             -webkit-font-smoothing: antialiased; scroll-behavior: smooth;
         }
 
-        /* Fix Hidden Issue */
-        .hidden { display: none !important; }
+        .force-hidden { display: none !important; }
 
         .glass-panel {
             background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -51,11 +50,10 @@
         .card-base {
             background: var(--bg-card); border-radius: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--glass-border);
-            overflow: hidden; transition: all 0.3s; position: relative;
+            transition: all 0.3s; position: relative;
         }
         .card-base:active { transform: scale(0.98); }
         .card-done { opacity: 0.6; filter: grayscale(100%); }
-        
         .highlight-card { animation: highlightPulse 1.5s ease-out infinite; border: 2px solid #0A84FF !important; }
         @keyframes highlightPulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0); }
@@ -103,11 +101,7 @@
             padding: 2px 6px; border-radius: 4px;
         }
 
-        .serial-grid { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); 
-            gap: 6px; padding: 10px; background: var(--bg-card); 
-            border-top: 1px solid var(--glass-border);
-        }
+        .serial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; padding: 10px; background: var(--bg-card); border-top: 1px solid var(--glass-border); }
         .serial-chip {
             background: var(--chip-bg); color: var(--chip-text); font-family: monospace; font-size: 12px;
             padding: 8px 4px; text-align: center; border-radius: 8px; border: 1px solid var(--glass-border);
@@ -155,7 +149,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
                     <div>
                         <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
-                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V8 FIX</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V13 ENG</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -217,12 +211,9 @@
                 <button onclick="closeSettings()" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">&times;</button>
             </div>
             <div class="p-5 overflow-y-auto space-y-4 flex-1">
-                <!-- Status Dashboard -->
                 <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl">
                     <h4 class="text-xs font-bold text-gray-500 mb-2 uppercase">📊 裝備妥善概況</h4>
-                    <div id="statusDashboard" class="text-sm space-y-2">
-                        <!-- Populated by JS -->
-                    </div>
+                    <div id="statusDashboard" class="text-sm space-y-2"></div>
                 </div>
 
                 <div>
@@ -256,7 +247,7 @@
     <script>
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
 
-        const CATEGORIES = { '兵器': { css: 'theme-weap' }, '通信': { css: 'theme-comm' }, '化學': { css: 'theme-chem' }, '輪車': { css: 'theme-truck' }, '工兵': { css: 'theme-eng' } };
+        const CATEGORIES = { '兵器': { css: 'theme-weap', icon:'⚔️' }, '通信': { css: 'theme-comm', icon:'📡' }, '化學': { css: 'theme-chem', icon:'🧪' }, '輪車': { css: 'theme-truck', icon:'🚚' }, '工兵': { css: 'theme-eng', icon:'🧭' } };
         const DEFAULT_DATA = { 
             T74: { name: 'T74 排用機槍', cat: '兵器', ids: '007231,007447,007496,007501,007544,007654,009661,009971', groups: [1,1,2,2,2,3,3,3] },
             T75: { name: 'T75 班用機槍', cat: '兵器', ids: '008727,008749,008788,008805,008870,008899,008950,009043,009097,009109,012244,012247,012459,012610,012627,012864,012865,012880,012919,012925,012928,012931,012933,012943,012946,012954,012959,012962,012964,012967,013026,013029,013031,013032,013038,013039', groups: Array(36).fill(0).map((_, i) => i < 18 ? 'A' : 'B') },
@@ -295,7 +286,14 @@
             const savedYear = localStorage.getItem('MY_YEAR');
             const savedStatus = localStorage.getItem('MY_EQUIP_STATUS');
             
-            DATA = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+            // 🔥 DATA DOCTOR
+            try {
+                DATA = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+            } catch(e) {
+                console.log("Data corrupted, resetting");
+                DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            }
+
             SCHEDULE = savedSched ? JSON.parse(savedSched) : JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
             if(savedDone) doneTasks = new Set(JSON.parse(savedDone));
             if(savedMemos) memos = JSON.parse(savedMemos);
@@ -304,9 +302,16 @@
 
             document.getElementById('appTitle').textContent = `${currentYear}年 裝備管制`;
 
-            // Robust check for list generation
+            // 🔥 FORCE FIX
             Object.keys(DATA).forEach(k => { 
-                if (DATA[k].ids && (!DATA[k].list || DATA[k].list.length === 0)) {
+                if (DATA[k].ids) {
+                    if (typeof DATA[k].ids === 'string') {
+                        DATA[k].list = DATA[k].ids.split(',').map(s => s.trim()).filter(s => s !== '');
+                    } else if (Array.isArray(DATA[k].ids)) {
+                        DATA[k].list = DATA[k].ids; 
+                    }
+                } else if (!DATA[k].list && DEFAULT_DATA[k] && DEFAULT_DATA[k].ids) {
+                    DATA[k].ids = DEFAULT_DATA[k].ids;
                     DATA[k].list = DATA[k].ids.split(',');
                 }
             });
@@ -349,6 +354,7 @@
                     let finalDate = new Date(d);
                     while (checkIsHoliday(finalDate) || isWeekend(finalDate)) finalDate.setDate(finalDate.getDate() + 1);
                     const sysData = DATA[sys]; if(!sysData) return;
+                    // 🔥 關鍵修正：確保 ids 是陣列
                     let ids = sysData.list || [];
                     if(filterFn) ids = ids.filter(filterFn);
                     rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
@@ -375,6 +381,9 @@
                     const w = Math.ceil(f.getDate() / 7);
                     ['M8A1','LS-920','MHR-112','PRC-37C','KY-2000A','TRUCK'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
                     if ((isBigMonth && idx === arr.length - 1) || (!isBigMonth && w === 1)) add(f, `${m}月第${w}週週保養`, 'T3-75');
+                    if (w === 2) {
+                        ['COMPASS', 'TS71'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
+                    }
                     if (w === 3) {
                          ['M1911', 'M1911A1', 'T85'].forEach(s => add(f, `${m}月第${w}週週保養`, s));
                          add(f, `${m}月第${w}週週保養`, 'T74', (_, i) => DATA.T74.groups[i] !== eg);
@@ -439,11 +448,12 @@
                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     card.classList.add('highlight-card');
                     
-                    // Auto Expand All
-                    const subItems = card.querySelectorAll('[id^=list-sys-]');
-                    subItems.forEach(el => el.classList.remove('hidden'));
+                    // 🔥 強制展開：移除所有 force-hidden
+                    const subItems = card.querySelectorAll('.force-hidden');
+                    subItems.forEach(el => el.classList.remove('force-hidden'));
+                    
                     const chevrons = card.querySelectorAll('.chevron');
-                    chevrons.forEach(el => el.parentElement.parentElement.classList.add('expanded'));
+                    chevrons.forEach(el => el.parentElement.parentElement.parentElement.classList.add('expanded'));
 
                     setTimeout(() => card.classList.remove('highlight-card'), 2000);
                 }
@@ -650,6 +660,7 @@
                         </div>
                         <div class="flex gap-2">
                              <button onclick="openMemo('${uniqueKey}')" class="icon-btn text-yellow-600 hover:bg-yellow-100 text-sm">📝</button>
+                             <button onclick="copyReport(${i})" class="icon-btn text-purple-600 hover:bg-purple-100 text-sm" title="產生回報單">📣</button>
                              <button onclick="toggleTaskDone('${uniqueKey}', this)" class="icon-btn hover:bg-green-100 text-lg">${isDone ? '✅' : '⭕️'}</button>
                              <button onclick="copy(${i})" class="icon-btn text-blue-600 hover:bg-blue-100">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
@@ -660,18 +671,14 @@
 
                 validItems.forEach((it, idx) => {
                     const cnt = it.bulk || (it.ids ? it.ids.length : 0);
-                    // Use index within validItems to ensure unique ID in this render pass
                     const rowId = `sys-${i}-${idx}`; 
-                    
-                    const isMatchName = searchQuery && DATA[it.sys].name.includes(searchQuery);
-                    const isMatchId = searchQuery && it.ids && it.ids.some(id => id.includes(searchQuery));
-                    const shouldExpand = searchQuery && (isMatchName || isMatchId);
                     const catTheme = CATEGORIES[it.cat] || { css: 'theme-truck' }; 
                     const hasIds = it.ids && it.ids.length > 0;
 
+                    // 🔥 關鍵修正：將 onclick 改為整行都能點，且使用 force-hidden 取代 hidden
                     innerHtml += `
-                        <div id="row-${rowId}" class="sys-card ${catTheme.css} ${shouldExpand ? 'expanded' : ''} cursor-pointer overflow-hidden">
-                            <div class="flex justify-between items-center p-3" onclick="toggleSys('${rowId}')">
+                        <div id="row-${rowId}" class="sys-card ${catTheme.css} cursor-pointer overflow-hidden" onclick="toggleSys('${rowId}')">
+                            <div class="flex justify-between items-center p-3">
                                 <div class="flex items-center gap-2 overflow-hidden flex-1">
                                     <span class="font-bold text-[15px] truncate">${DATA[it.sys].name}</span>
                                     <span class="stats-tag flex-shrink-0">${cnt}</span>
@@ -683,7 +690,8 @@
                     `;
 
                     if (hasIds) {
-                        innerHtml += `<div id="list-${rowId}" class="${shouldExpand ? '' : 'hidden'} serial-grid">`;
+                        const shouldExpand = searchQuery && (isMatchName || isMatchId);
+                        innerHtml += `<div id="list-${rowId}" class="${shouldExpand ? '' : 'force-hidden'} serial-grid">`;
                         it.ids.forEach(id => {
                             const highlight = searchQuery && id.includes(searchQuery);
                             const status = equipmentStatus[id];
@@ -691,7 +699,7 @@
                             if (status === 'repair') extraClass = 'chip-repair';
                             else if (status === 'fault') extraClass = 'chip-fault';
                             
-                            innerHtml += `<div class="serial-chip ${highlight ? 'highlight' : ''} ${extraClass}" onclick="handleSerialClick(this, '${id}')">${id}</div>`;
+                            innerHtml += `<div class="serial-chip ${highlight ? 'highlight' : ''} ${extraClass}" onclick="event.stopPropagation(); handleSerialClick(this, '${id}')">${id}</div>`;
                         });
                         innerHtml += `</div>`;
                     }
@@ -701,6 +709,50 @@
                 fragment.appendChild(card);
             });
             container.appendChild(fragment);
+        }
+
+        window.toggleSys = function(id) {
+            const content = document.getElementById(`list-${id}`);
+            if(!content) return; // 如果沒有序號，content 不存在
+            
+            // 使用 classList.toggle 切換 force-hidden
+            content.classList.toggle('force-hidden');
+            
+            // 旋轉箭頭
+            const row = document.getElementById(`row-${id}`);
+            const chevron = row.querySelector('.chevron');
+            if(chevron) {
+                if (content.classList.contains('force-hidden')) {
+                    chevron.classList.remove('expanded');
+                } else {
+                    chevron.classList.add('expanded');
+                }
+            }
+        }
+
+        // --- NEW REPORT FEATURE ---
+        window.copyReport = function(i) {
+            const row = filteredData[i];
+            const cats = new Set();
+            row.items.forEach(it => cats.add(it.cat));
+            
+            let txt = `【保養進度回報】\n`;
+            txt += `📅 ${currentYear}/${row.d.str} (${row.d.day})\n`;
+            txt += `🛠️ 任務：${row.t}\n\n`;
+            txt += `請各組回報狀況：\n`;
+            txt += `----------------\n`;
+            const catOrder = ['兵器', '通信', '化學', '輪車', '工兵'];
+            const sortedCats = Array.from(cats).sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b));
+            sortedCats.forEach(c => {
+                const icon = CATEGORIES[c] ? CATEGORIES[c].icon : '📦';
+                txt += `${icon} ${c}：\n`;
+            });
+            txt += `----------------\n`;
+            txt += `請確實完成保表及履歷書填寫\n`;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(() => showToast("已複製回報單！")).catch(() => fallbackCopy(txt));
+            } else { fallbackCopy(txt); }
         }
 
         window.copy = function(i) {
@@ -769,21 +821,12 @@
             setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        window.toggleSys = function(id) {
-            const content = document.getElementById(`list-${id}`);
-            const row = document.getElementById(`row-${id}`);
-            if(!content) return;
-            content.classList.toggle('hidden');
-            row.classList.toggle('expanded');
-        }
-
         window.openSettings = function() {
             document.getElementById('yearInput').value = currentYear;
             document.getElementById('jsonEditorData').value = JSON.stringify(DATA, null, 2);
             document.getElementById('jsonEditorSchedule').value = JSON.stringify(SCHEDULE, null, 2);
             document.getElementById('settingsModal').classList.remove('hidden');
             
-            // Status Dashboard
             const dash = document.getElementById('statusDashboard');
             const issues = Object.keys(equipmentStatus).length;
             if(issues === 0) {
