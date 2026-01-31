@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-    <title>裝備管制 (V15 UI)</title>
+    <title>裝備管制 (V16 UI Fix)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -149,7 +149,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
                     <div>
                         <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
-                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V15 UI</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V16 UI FIX</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -656,14 +656,14 @@
                                 <span class="text-xs text-gray-500 font-medium bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">週${row.d.day}</span>
                                 <span class="badge-task ${taskClass}">${row.t}</span>
                             </div>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium dark:bg-gray-700 dark:text-gray-300">
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap flex-shrink-0 dark:bg-gray-700 dark:text-gray-300">
                                     ${cardCats.size} 類別
                                 </span>
-                                <span class="px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium dark:bg-gray-700 dark:text-gray-300">
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap flex-shrink-0 dark:bg-gray-700 dark:text-gray-300">
                                     ${cardItems.size} 項目
                                 </span>
-                                <span class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold whitespace-nowrap flex-shrink-0 dark:bg-blue-900/30 dark:text-blue-400">
                                     共 ${cardPieces} 件
                                 </span>
                             </div>
