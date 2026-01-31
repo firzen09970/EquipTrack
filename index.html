@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-    <title>裝備管制 (V14 Filter)</title>
+    <title>裝備管制 (V15 UI)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -149,7 +149,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
                     <div>
                         <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
-                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V14 FILTER</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V15 UI</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -354,6 +354,7 @@
                     let finalDate = new Date(d);
                     while (checkIsHoliday(finalDate) || isWeekend(finalDate)) finalDate.setDate(finalDate.getDate() + 1);
                     const sysData = DATA[sys]; if(!sysData) return;
+                    // 🔥 關鍵修正：確保 ids 是陣列
                     let ids = sysData.list || [];
                     if(filterFn) ids = ids.filter(filterFn);
                     rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
@@ -655,8 +656,16 @@
                                 <span class="text-xs text-gray-500 font-medium bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">週${row.d.day}</span>
                                 <span class="badge-task ${taskClass}">${row.t}</span>
                             </div>
-                            <div class="flex gap-2 text-xs text-gray-500 mt-1">
-                                <span>${cardCats.size} 類</span>·<span>${cardItems.size} 項</span>·<span class="text-blue-500 font-bold">共 ${cardPieces} 件</span>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium dark:bg-gray-700 dark:text-gray-300">
+                                    ${cardCats.size} 類別
+                                </span>
+                                <span class="px-2 py-1 rounded-md bg-gray-100 text-gray-600 text-xs font-medium dark:bg-gray-700 dark:text-gray-300">
+                                    ${cardItems.size} 項目
+                                </span>
+                                <span class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-xs font-bold dark:bg-blue-900/30 dark:text-blue-400">
+                                    共 ${cardPieces} 件
+                                </span>
                             </div>
                             ${memoText ? `<div class="memo-box" onclick="openMemo('${uniqueKey}')"><span>📝</span><span>${memoText}</span></div>` : ''}
                         </div>
@@ -822,14 +831,6 @@
             document.getElementById('toastMsg').innerText = msg;
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2000);
-        }
-
-        window.toggleSys = function(id) {
-            const content = document.getElementById(`list-${id}`);
-            const row = document.getElementById(`row-${id}`);
-            if(!content) return;
-            content.classList.toggle('hidden');
-            row.classList.toggle('expanded');
         }
 
         window.openSettings = function() {
