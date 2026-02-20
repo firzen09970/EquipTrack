@@ -1,22 +1,959 @@
-const CACHE_NAME = 'equip-control-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap'
-];
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F2F2F7">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
-});
+    <title>裝備管制 (V20 CNY Merge Fix)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
+        :root {
+            --bg-body: #F2F2F7; --bg-card: #FFFFFF; --text-main: #000000;
+            --glass-bg: rgba(255, 255, 255, 0.95); --glass-border: rgba(0, 0, 0, 0.1);
+            --input-bg: #EBEBF0; --chip-bg: #f2f2f7; --chip-text: #1c1c1e;
+        }
+
+        .dark {
+            --bg-body: #000000; --bg-card: #1C1C1E; --text-main: #FFFFFF;
+            --glass-bg: rgba(28, 28, 30, 0.95); --glass-border: rgba(255, 255, 255, 0.15);
+            --input-bg: #2C2C2E; --chip-bg: #2C2C2E; --chip-text: #E5E5E5;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Noto Sans TC', system-ui, sans-serif;
+            background: var(--bg-body); color: var(--text-main);
+            padding: 0; margin: 0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased; scroll-behavior: smooth;
+        }
+
+        .force-hidden { display: none !important; }
+
+        .glass-panel {
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .card-base {
+            background: var(--bg-card); border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--glass-border);
+            transition: all 0.3s; position: relative;
+        }
+        .card-base:active { transform: scale(0.98); }
+        .card-done { opacity: 0.6; filter: grayscale(100%); }
+        .highlight-card { animation: highlightPulse 1.5s ease-out infinite; border: 2px solid #0A84FF !important; }
+        @keyframes highlightPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(10, 132, 255, 0); }
+            50% { box-shadow: 0 0 0 10px rgba(10, 132, 255, 0); }
+        }
+
+        .glass-select, .glass-input {
+            appearance: none; background-color: var(--input-bg); border: none;
+            border-radius: 10px; height: 38px; font-size: 14px; font-weight: 500;
+            color: var(--text-main); width: 100%;
+        }
+        .glass-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; padding: 0 32px 0 12px;
+        }
+        .glass-input { padding: 0 12px 0 36px; }
+        
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; padding-top: max(env(safe-area-inset-top), 8px); }
+        .main-content { padding-bottom: 80px; animation: fadeIn 0.4s ease-out; }
+
+        .theme-weap { --main-col: #ff453a; } .theme-comm { --main-col: #64d2ff; }
+        .theme-chem { --main-col: #30d158; } .theme-truck { --main-col: #98989d; } .theme-eng { --main-col: #ff9f0a; }
+
+        .badge-task { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; display: inline-block; }
+        .task-entry { background: rgba(255, 69, 58, 0.15); color: #ff453a; }
+        .task-main { background: rgba(100, 210, 255, 0.15); color: #0a84ff; }
+        .task-weekly { background: rgba(48, 209, 88, 0.15); color: #30d158; }
+
+        .sys-card { 
+            border-radius: 10px; margin-top: 8px; background: rgba(128, 128, 128, 0.05); 
+            border: 1px solid var(--glass-border); border-left: 4px solid var(--main-col);
+        }
+        .stats-tag { font-size: 11px; color: #8E8E93; background: var(--input-bg); padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+
+        .countdown-card {
+            background: linear-gradient(135deg, #0A84FF 0%, #0055b3 100%);
+            color: white; padding: 16px; border-radius: 16px; margin-bottom: 16px;
+            box-shadow: 0 8px 16px rgba(10, 132, 255, 0.25);
+            transition: transform 0.1s; cursor: pointer; position: relative; overflow: hidden;
+        }
+        .countdown-card:active { transform: scale(0.97); }
+        .countdown-card::after {
+            content: "👆 點擊查看詳情"; position: absolute; right: 16px; top: 16px; 
+            font-size: 10px; opacity: 0.6; border: 1px solid rgba(255,255,255,0.4); 
+            padding: 2px 6px; border-radius: 4px;
+        }
+
+        .serial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; padding: 10px; background: var(--bg-card); border-top: 1px solid var(--glass-border); }
+        .serial-chip {
+            background: var(--chip-bg); color: var(--chip-text); font-family: monospace; font-size: 12px;
+            padding: 8px 4px; text-align: center; border-radius: 8px; border: 1px solid var(--glass-border);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.2s;
+        }
+        .serial-chip.highlight { background: rgba(255, 214, 10, 0.3); color: #FFD60A; border-color: #FFD60A; font-weight: bold; }
+        
+        .chip-checked { opacity: 0.3; text-decoration: line-through; }
+        .chip-repair { background: #FEF3C7 !important; color: #92400E !important; border-color: #F59E0B !important; font-weight: bold; }
+        .chip-fault { background: #FEE2E2 !important; color: #B91C1C !important; border-color: #EF4444 !important; font-weight: bold; }
+        .dark .chip-repair { background: rgba(245, 158, 11, 0.2) !important; color: #FCD34D !important; }
+        .dark .chip-fault { background: rgba(239, 68, 68, 0.2) !important; color: #FCA5A5 !important; }
+        .mode-active { box-shadow: 0 0 0 2px #F59E0B; background: #FEF3C7 !important; color: #92400E !important; }
+        .dark .mode-active { background: rgba(245, 158, 11, 0.3) !important; color: #FCD34D !important; }
+
+        .expanded .chevron { transform: rotate(180deg); }
+        .chevron { transition: transform 0.25s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .modal-bg { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .textarea-glass { background: var(--input-bg); color: var(--text-main); width: 100%; border-radius: 12px; padding: 12px; border: none; font-family: monospace; font-size: 13px; }
+        
+        #toast { 
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(30,30,30,0.95); color: #fff; padding: 12px 24px; 
+            border-radius: 50px; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            font-size: 14px; font-weight: 600; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 8px; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+        .icon-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--input-bg); font-size: 18px; cursor: pointer; transition: all 0.2s; }
+        
+        .memo-box {
+            margin-top: 8px; padding: 8px 12px; background: #FEF3C7; color: #92400E; 
+            border-radius: 8px; font-size: 13px; border: 1px solid #FCD34D; display: flex; gap: 6px; align-items: start;
+        }
+        .dark .memo-box { background: rgba(217, 119, 6, 0.2); color: #FCD34D; border-color: rgba(217, 119, 6, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="top-bar glass-panel shadow-sm">
+        <div class="max-w-2xl mx-auto w-full px-4 pb-3">
+            <div class="flex justify-between items-center py-2">
+                <div class="flex gap-2 items-center">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
+                    <div>
+                        <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V20 CNY MERGE FIX</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="repairModeBtn" onclick="toggleRepairMode()" class="icon-btn" title="維保模式">🔧</button>
+                    <button onclick="toggleTheme()" class="icon-btn">🌗</button>
+                    <button onclick="openSettings()" class="text-blue-500 font-medium text-sm px-2 active:opacity-60">設定</button>
+                </div>
+            </div>
+            
+            <div id="filterSection" class="grid grid-cols-2 gap-2 mb-2">
+                <select id="selMonth" onchange="applyFilters()" class="glass-select"><option value="all">📅 所有月份</option></select>
+                <select id="selCat" onchange="applyFilters()" class="glass-select">
+                    <option value="all">📂 所有類別</option>
+                    <option value="兵器">兵器</option><option value="通信">通信</option>
+                    <option value="化學">化學</option><option value="輪車">輪車</option><option value="工兵">工兵</option>
+                </select>
+                <select id="selType" onchange="applyFilters()" class="glass-select">
+                    <option value="all">📋 所有任務</option>
+                    <option value="進廠">進廠</option><option value="連主官裝備檢查">連主檢</option><option value="週保養">週保養</option>
+                </select>
+                <select id="selEquip" onchange="applyFilters()" class="glass-select"><option value="all">📦 指定裝備...</option></select>
+            </div>
+            <div class="relative">
+                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+                <input type="text" id="searchInput" placeholder="搜尋序號、名稱..." class="glass-input">
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto px-4 main-content" id="mainContainer">
+        <div id="countdownContainer" class="hidden"></div>
+        <div id="cardContainer" class="space-y-4"></div>
+        <div id="noData" class="hidden flex flex-col items-center justify-center pt-20 pb-10 text-gray-400">
+            <span class="text-sm font-medium">無符合資料</span>
+            <button onclick="resetFilters()" class="mt-4 text-blue-500 text-sm font-bold">重置篩選</button>
+        </div>
+    </div>
+
+    <!-- Memo Modal -->
+    <div id="memoModal" class="hidden fixed inset-0 z-[70] modal-bg flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1C1C1E] w-full max-w-sm rounded-2xl flex flex-col shadow-2xl p-4">
+            <h3 class="font-bold text-lg mb-3">📝 新增備註</h3>
+            <textarea id="memoInput" class="textarea-glass h-32 mb-4" placeholder="例如：缺潤滑油、待料中..."></textarea>
+            <input type="hidden" id="memoKey">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeMemo()" class="px-4 py-2 text-gray-500">取消</button>
+                <button onclick="saveMemo()" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-[60] modal-bg flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1C1C1E] w-full max-w-lg max-h-[90vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-[#2C2C2E] flex justify-between items-center">
+                <h3 class="font-bold">設定 & 儀表板</h3>
+                <button onclick="closeSettings()" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 flex-1">
+                <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-xl">
+                    <h4 class="text-xs font-bold text-gray-500 mb-2 uppercase">📊 裝備妥善概況</h4>
+                    <div id="statusDashboard" class="text-sm space-y-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold mb-1 text-gray-500">年度設定 (民國)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="yearInput" class="glass-input text-center font-bold text-lg text-blue-600" value="115">
+                        <span class="text-sm text-gray-500">年</span>
+                    </div>
+                </div>
+
+                <div class="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-2"></div>
+
+                <div class="grid grid-cols-2 gap-3 mb-2">
+                    <button onclick="exportData()" class="py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">📤 匯出備份</button>
+                    <button onclick="document.getElementById('fileInput').click()" class="py-2 bg-green-100 text-green-700 rounded-lg text-sm font-bold">📥 匯入資料</button>
+                    <input type="file" id="fileInput" accept=".json" class="hidden" onchange="importData(this)">
+                </div>
+                
+                <textarea id="jsonEditorData" class="textarea-glass h-32" placeholder="DATA"></textarea>
+                <textarea id="jsonEditorSchedule" class="textarea-glass h-24" placeholder="SCHEDULE"></textarea>
+            </div>
+            <div class="p-4 border-t dark:border-gray-700 flex justify-between gap-3">
+                <button onclick="resetToDefaults()" class="px-4 py-2 text-red-500 font-semibold text-sm">恢復預設</button>
+                <button onclick="saveSettings()" class="px-6 py-2 bg-blue-600 text-white font-semibold text-sm rounded-lg">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"><span id="toastMsg">已複製！</span></div>
+
+    <script>
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js')); }
+
+        const CATEGORIES = { '兵器': { css: 'theme-weap', icon:'⚔️' }, '通信': { css: 'theme-comm', icon:'📡' }, '化學': { css: 'theme-chem', icon:'🧪' }, '輪車': { css: 'theme-truck', icon:'🚚' }, '工兵': { css: 'theme-eng', icon:'🧭' } };
+        const DEFAULT_DATA = { 
+            T74: { name: 'T74 排用機槍', cat: '兵器', ids: '007231,007447,007496,007501,007544,007654,009661,009971', groups: [1,1,2,2,2,3,3,3] },
+            T75: { name: 'T75 班用機槍', cat: '兵器', ids: '008727,008749,008788,008805,008870,008899,008950,009043,009097,009109,012244,012247,012459,012610,012627,012864,012865,012880,012919,012925,012928,012931,012933,012943,012946,012954,012959,012962,012964,012967,013026,013029,013031,013032,013038,013039', groups: Array(36).fill(0).map((_, i) => i < 18 ? 'A' : 'B') },
+            T65K2: { name: 'T65K2 步槍', cat: '兵器', ids: '186074,187921,193648,207145,209263,209439,209697,209823,219834,220007,221303,221554,221566,221640,224376,230470,231016,231849,232622,234718,234742,236236,236465,236967,237338,314846,332587,332607,332668,332754,332762,337624,362245,362411,362415,362676,363053,364122,364896,367128,367730,368657,369550,370013,370200,370374,383020,383715,385207,385332,386038,386251,386399,388131,389145,389516,390010,390539,391124,391958,392012,392166,392167,393872,393947,394347,394468,394681,394777,394861,394863,394902,394907,394913,394923,395042,395065,395109,395113,395167,395348,395555,395671,395860,396172,396176,396207,396356,396359,396597,397068,397153,397273,397314,398005,398192,398389,398432,398934,399146,399327,399595,400655,400847,401766,402894,403128,403843,404390,405120,405205,405700,406970,407492,407620,408250' },
+            T85: { name: 'T85 榴彈發射器', cat: '兵器', ids: '000032,000155,001750,001780,001998,008454,008834,008890,009004,009759,010532,010681,011186,011293,011358,011498,011522,011662,011820,011906,012571,012589,012695,012760,012775,012845,014580,016641,018164,018390,019120,019191,019202,019261,019674,021606' },
+            M1911A1: { name: 'M1911A1 手槍', cat: '兵器', ids: '51-06411' },
+            M1911: { name: 'M1911 手槍', cat: '兵器', ids: '124141,1546783,1810911,1943969,1952496,2215347,2226406,954710' },
+            M8A1: { name: 'M8A1 毒氣警報器', cat: '化學', ids: '1010413' },
+            'LS-920': { name: 'LS-920 消毒器', cat: '化學', ids: '513,514' },
+            'T3-75': { name: 'T3-75 防毒面具', cat: '化學', bulk: 161 },
+            M256: { name: 'M256 偵檢包', cat: '化學', bulk: 1 },
+            WAR_FILTER: { name: '戰備濾毒罐', cat: '化學', bulk: 161 },
+            '62_FILTER': { name: '62式濾毒罐', cat: '化學', bulk: 161 },
+            'T4-86': { name: 'T4-86 消除包', cat: '化學', bulk: 161 },
+            'MHR-112': { name: 'MHR-112 無線電機', cat: '通信', ids: 'LV11203353,LV11203354,LV11203355,LV11203356,LV11203357,LV11203358,LV11203359,LV11203360,LV11203361,LV11203362,LV11203363,LV11203364,LV11203365,LV11203366,LV11203367,LV11203368,LV11203369,LV11203370,LV11203371,LV11203372,LV11203373' },
+            'PRC-37C': { name: 'CS/PRC-37C 無線電機', cat: '通信', ids: '22250' },
+            'KY-2000A': { name: 'KY-2000A 電子話機', cat: '通信', ids: '714-T02378,714-T02422,714-T02628,714-T02647,714-T03864,714-T13385,714-T13867,714-T13873,714-T14184,714-T14238,714-T15582,714-T15596,714-T14095,714-T17758,714-T17764,714-T03057' },
+            TRUCK: { name: '3.5噸載重車', cat: '輪車', ids: '軍3-23993' },
+            COMPASS: { name: '指北針', cat: '工兵', ids: 'V-109J-0D07-0374,900288,9105443,9100940' },
+            TS71: { name: 'TS-71 八倍望遠鏡', cat: '工兵', ids: '920593,920594,930926,931142,931501,931863,94A031182,94A030419,94A030713' }
+        };
+        const DEFAULT_SCHEDULE = {1:{m:19,t:20,w:21,f:23},2:{m:23,t:24,w:25,f:27},3:{m:23,t:24,w:25,f:27},4:{m:20,t:21,w:22,f:24},5:{m:25,t:26,w:27,f:29},6:{m:22,t:23,w:24,f:26},7:{m:20,t:21,w:22,f:24},8:{m:24,t:25,w:26,f:28},9:{m:21,t:22,w:23,f:25},10:{m:19,t:20,w:21,f:23},11:{m:23,t:24,w:25,f:27},12:{m:21,t:22,w:23,f:25}};
+
+        // 🔥 調整春節範圍，確保 2/23 (一) 連主檢正常運作
+        // 2026 春節結束於 2/22 (日)
+        const CNY_RANGES = [
+            { start: new Date(2025, 0, 25), end: new Date(2025, 1, 2) },
+            { start: new Date(2026, 1, 16), end: new Date(2026, 1, 22) }, 
+            { start: new Date(2027, 1, 5), end: new Date(2027, 1, 14) },
+            { start: new Date(2028, 0, 25), end: new Date(2028, 1, 3) },
+            { start: new Date(2029, 1, 12), end: new Date(2029, 1, 20) },
+            { start: new Date(2030, 1, 2), end: new Date(2030, 1, 10) }
+        ];
+
+        let DATA = {}, SCHEDULE = {};
+        let allData = [], filteredData = [], currentYear = 115;
+        let doneTasks = new Set();
+        let memos = {};
+        let equipmentStatus = {};
+        let isRepairMode = false;
+
+        function loadData() {
+            const savedData = localStorage.getItem('MY_EQUIP_DATA');
+            const savedSched = localStorage.getItem('MY_SCHEDULE');
+            const savedDone = localStorage.getItem('MY_DONE_TASKS');
+            const savedMemos = localStorage.getItem('MY_MEMOS');
+            const savedYear = localStorage.getItem('MY_YEAR');
+            const savedStatus = localStorage.getItem('MY_EQUIP_STATUS');
+            
+            try {
+                DATA = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(DEFAULT_DATA));
+            } catch(e) {
+                console.log("Data corrupted, resetting");
+                DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            }
+
+            SCHEDULE = savedSched ? JSON.parse(savedSched) : JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+            if(savedDone) doneTasks = new Set(JSON.parse(savedDone));
+            if(savedMemos) memos = JSON.parse(savedMemos);
+            if(savedYear) currentYear = parseInt(savedYear);
+            if(savedStatus) equipmentStatus = JSON.parse(savedStatus);
+
+            document.getElementById('appTitle').textContent = `${currentYear}年 裝備管制`;
+
+            Object.keys(DATA).forEach(k => { 
+                if (DATA[k].ids) {
+                    if (typeof DATA[k].ids === 'string') {
+                        DATA[k].list = DATA[k].ids.split(',').map(s => s.trim()).filter(s => s !== '');
+                    } else if (Array.isArray(DATA[k].ids)) {
+                        DATA[k].list = DATA[k].ids; 
+                    }
+                } else if (!DATA[k].list && DEFAULT_DATA[k] && DEFAULT_DATA[k].ids) {
+                    DATA[k].ids = DEFAULT_DATA[k].ids;
+                    DATA[k].list = DATA[k].ids.split(',');
+                }
+            });
+            if(localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+        }
+
+        function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+        
+        function isChineseNewYear(d) {
+            const t = d.getTime();
+            return CNY_RANGES.some(range => t >= range.start.getTime() && t <= range.end.getTime());
+        }
+
+        function checkIsHoliday(d) { 
+            const m = d.getMonth(), dt = d.getDate();
+            if (m === 0 && dt === 1) return true; // 元旦
+            return isChineseNewYear(d);
+        }
+        
+        function isWorkDay(d) { return !isWeekend(d) && !checkIsHoliday(d); }
+        function getWorkDay(y, m, n) {
+            let d = new Date(y, m-1, 1), c = 0;
+            while (d.getMonth() === m-1) { if (isWorkDay(d)) { c++; if (c === n) return d; } d.setDate(d.getDate() + 1); }
+            return d;
+        }
+        function getWeekday(y, m, n, wd) {
+            let d = new Date(y, m-1, 1), c = 0;
+            while (d.getMonth() === m-1) { if (d.getDay() === wd) { c++; if (c === n) return d; } d.setDate(d.getDate() + 1); }
+            return null;
+        }
+        function getFridays(y, m) {
+            let r = [], d = new Date(y, m-1, 1);
+            while (d.getMonth() === m-1) { if (d.getDay() === 5) r.push(new Date(d)); d.setDate(d.getDate() + 1); }
+            return r;
+        }
+        function fmt(d) {
+            const m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+            return { str: `${m}.${day}`, day: ['日','一','二','三','四','五','六'][d.getDay()], key: parseInt(`${d.getFullYear()}${m}${day}`), obj: d };
+        }
+
+        function buildSchedule() {
+            let rawEvents = [];
+            const y = currentYear + 1911; 
+            for (let m = 1; m <= 12; m++) {
+                const s = SCHEDULE[m]; if (!s) continue; 
+                const mainMon = new Date(y, m-1, s.m), mainTue = new Date(y, m-1, s.t), mainWed = new Date(y, m-1, s.w), mainFriKey = fmt(new Date(y, m-1, s.f)).key;
+                const wd1 = getWorkDay(y, m, 1), wd2 = getWorkDay(y, m, 2);
+                
+                // 一般排程：連主檢、進廠等，僅需避開假日
+                const add = (d, t, sys, filterFn) => {
+                    if (!d) return;
+                    let finalDate = new Date(d);
+                    while (checkIsHoliday(finalDate) || isWeekend(finalDate)) {
+                         finalDate.setDate(finalDate.getDate() + 1);
+                    }
+                    const sysData = DATA[sys]; if(!sysData) return;
+                    let ids = sysData.list || [];
+                    if(filterFn) ids = ids.filter(filterFn);
+                    rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
+                };
+
+                const eg = m % 3 || 3;
+                add(wd1, '進廠', 'T74', (_, i) => DATA.T74.groups[i] === eg);
+                add(mainWed, '連主官裝備檢查', 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                add(wd1, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'A');
+                add(wd2, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'B');
+                add(mainWed, '連主官裝備檢查', 'T65K2');
+                const w1f = getWeekday(y, m, 1, 5);
+                if (w1f && fmt(w1f).key !== mainFriKey) add(w1f, `${m}月第1週週保養`, 'T65K2');
+                ['T85','M1911A1','M1911'].forEach(s => add(mainWed, '連主官裝備檢查', s));
+                ['TRUCK', 'COMPASS', 'TS71', 'KY-2000A'].forEach(s => add(mainTue, '連主官裝備檢查', s));
+                ['MHR-112','PRC-37C'].forEach(s => { add(wd1, '進廠', s); add(mainTue, '連主官裝備檢查', s); });
+                ['M8A1','LS-920'].forEach(s => { add(wd2, '進廠', s); add(mainMon, '連主官裝備檢查', s); });
+                ['T3-75','M256','WAR_FILTER','62_FILTER','T4-86'].forEach(s => add(mainMon, '連主官裝備檢查', s));
+                
+                const daysInMonth = new Date(y, m, 0).getDate();
+                const isBigMonth = daysInMonth === 31;
+                
+                // 🔥 週保養合併邏輯
+                // 定義一個內部函式，用來加入「某週」的裝備到「指定日期」
+                const addWeeklyItems = (targetDate, targetName, w) => {
+                     ['M8A1','LS-920','MHR-112','PRC-37C','KY-2000A','TRUCK'].forEach(s => add(targetDate, targetName, s));
+                     if ((isBigMonth && w === 5) || (!isBigMonth && w === 1)) add(targetDate, targetName, 'T3-75'); // 最後一週或第一週
+                     if (w === 2) ['COMPASS', 'TS71'].forEach(s => add(targetDate, targetName, s));
+                     if (w === 3) {
+                         ['M1911', 'M1911A1', 'T85'].forEach(s => add(targetDate, targetName, s));
+                         add(targetDate, targetName, 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                     }
+                };
+
+                const fridays = getFridays(y, m);
+                fridays.forEach((f, idx) => {
+                    if (fmt(f).key === mainFriKey) return;
+                    if (isChineseNewYear(f)) return; // 若當週是過年，直接跳過，不產生卡片
+
+                    const w = Math.ceil(f.getDate() / 7);
+                    const taskName = `${m}月第${w}週週保養`;
+                    
+                    // 1. 加入當週原本的裝備
+                    addWeeklyItems(f, taskName, w);
+
+                    // 2. 預判下一週：如果下週五是過年，把下週的裝備也加進來這週
+                    // 下一個週五日期
+                    const nextF = new Date(f);
+                    nextF.setDate(f.getDate() + 7);
+                    
+                    if (nextF.getMonth() === f.getMonth() && isChineseNewYear(nextF)) {
+                         const nextW = Math.ceil(nextF.getDate() / 7);
+                         // 注意：日期仍使用本週五(f)，名稱使用本週名稱，但內容加入下週(nextW)的裝備
+                         addWeeklyItems(f, taskName, nextW);
+                    }
+                });
+            }
+
+            let truckDate = new Date(2025, 7, 25);
+            let cycleIdx = 0;
+            const cyclePattern = ['B保', 'S保', 'A保', 'S保'];
+            for(let i=0; i<40; i++) {
+                if (truckDate.getFullYear() > y) break; 
+                let actualDate = new Date(truckDate);
+                while(isWeekend(actualDate) || checkIsHoliday(actualDate)) actualDate.setDate(actualDate.getDate() + 1);
+                
+                if (actualDate.getFullYear() === y) {
+                    const taskName = `輪車進廠 (${cyclePattern[cycleIdx % 4]})`; 
+                    if (DATA['TRUCK']) rawEvents.push({ m: actualDate.getMonth() + 1, d: fmt(actualDate), t: taskName, sys: 'TRUCK', cat: '輪車', ids: DATA['TRUCK'].list||[], bulk: 0, ts: actualDate.getTime() });
+                }
+                truckDate.setMonth(truckDate.getMonth() + 6);
+                cycleIdx++;
+            }
+            
+            const groupedMap = new Map();
+            rawEvents.forEach(e => {
+                const k = `${e.d.key}_${e.t}`;
+                if (!groupedMap.has(k)) {
+                    groupedMap.set(k, { m: e.m, d: e.d, t: e.t, ts: e.ts, items: [] });
+                }
+                const group = groupedMap.get(k);
+
+                // 🔥 去重複與合併邏輯
+                const existingItem = group.items.find(i => i.sys === e.sys);
+                if (existingItem) {
+                    // 若已存在：合併序號
+                    if (e.ids && e.ids.length > 0) {
+                        if (!existingItem.ids) existingItem.ids = [];
+                        // 合併並去重
+                        existingItem.ids = [...new Set([...existingItem.ids, ...e.ids])];
+                    }
+                } else {
+                    // 若不存在：新增
+                    group.items.push({ sys: e.sys, ids: e.ids, bulk: e.bulk, cat: e.cat });
+                }
+            });
+
+            allData = Array.from(groupedMap.values()).map(group => {
+                const catOrder = ['兵器', '通信', '化學', '工兵', '輪車'];
+                group.items.sort((a, b) => {
+                    const idxA = catOrder.indexOf(a.cat), idxB = catOrder.indexOf(b.cat);
+                    if (idxA !== idxB) return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                    return DATA[a.sys].name.localeCompare(DATA[b.sys].name, 'zh-TW');
+                });
+                return group;
+            }).sort((a, b) => a.d.key - b.d.key);
+        }
+
+        function updateCountdown() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const nextEventIdx = allData.findIndex(e => e.ts >= today.getTime());
+            const el = document.getElementById('countdownContainer');
+            
+            if (nextEventIdx !== -1) {
+                const nextEvent = allData[nextEventIdx];
+                const diffDays = Math.ceil(Math.abs(nextEvent.ts - today.getTime()) / (1000 * 60 * 60 * 24)); 
+                let msg = diffDays === 0 ? "⚠️ 任務就在今天！" : `⏳ 距離下次任務還有 <b>${diffDays}</b> 天`;
+                el.className = 'countdown-card';
+                el.onclick = () => scrollToCard(nextEventIdx, `${nextEvent.d.key}-${nextEvent.t}`);
+                el.innerHTML = `<div class="text-sm opacity-80 mb-1">NEXT MISSION</div><div class="text-xl font-bold mb-1">${nextEvent.t}</div><div class="flex justify-between items-end"><div class="text-sm">${currentYear}/${nextEvent.d.str} (週${nextEvent.d.day})</div><div class="bg-white/20 px-2 py-1 rounded text-sm">${msg}</div></div>`;
+            } else { el.classList.add('hidden'); }
+        }
+
+        function scrollToCard(index, key) {
+            resetFilters(false);
+            setTimeout(() => {
+                const card = document.getElementById(`card-${key}`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.classList.add('highlight-card');
+                    
+                    // 🔥 強制展開：移除所有 force-hidden
+                    const subItems = card.querySelectorAll('.force-hidden');
+                    subItems.forEach(el => el.classList.remove('force-hidden'));
+                    
+                    const chevrons = card.querySelectorAll('.chevron');
+                    chevrons.forEach(el => el.parentElement.parentElement.parentElement.classList.add('expanded'));
+
+                    setTimeout(() => card.classList.remove('highlight-card'), 2000);
+                }
+            }, 100);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        function toggleRepairMode() {
+            isRepairMode = !isRepairMode;
+            const btn = document.getElementById('repairModeBtn');
+            if(isRepairMode) btn.classList.add('mode-active');
+            else btn.classList.remove('mode-active');
+            showToast(isRepairMode ? "🔧 維保模式：點擊序號切換狀態" : "📋 點名模式：點擊序號劃記");
+        }
+
+        function handleSerialClick(el, serial) {
+            if(isRepairMode) {
+                let current = equipmentStatus[serial];
+                if (!current) { equipmentStatus[serial] = 'repair'; }
+                else if (current === 'repair') { equipmentStatus[serial] = 'fault'; }
+                else { delete equipmentStatus[serial]; }
+                localStorage.setItem('MY_EQUIP_STATUS', JSON.stringify(equipmentStatus));
+                
+                el.classList.remove('chip-repair', 'chip-fault', 'checked-item');
+                if (equipmentStatus[serial] === 'repair') el.classList.add('chip-repair');
+                else if (equipmentStatus[serial] === 'fault') el.classList.add('chip-fault');
+            } else {
+                el.classList.toggle('chip-checked');
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+        }
+
+        function openMemo(key) {
+            document.getElementById('memoKey').value = key;
+            document.getElementById('memoInput').value = memos[key] || '';
+            document.getElementById('memoModal').classList.remove('hidden');
+            document.getElementById('memoInput').focus();
+        }
+        function closeMemo() { document.getElementById('memoModal').classList.add('hidden'); }
+        function saveMemo() {
+            const key = document.getElementById('memoKey').value;
+            const text = document.getElementById('memoInput').value.trim();
+            if(text) memos[key] = text; else delete memos[key];
+            localStorage.setItem('MY_MEMOS', JSON.stringify(memos));
+            closeMemo(); applyFilters(); 
+        }
+
+        function exportData() {
+            const backup = { data: DATA, schedule: SCHEDULE, done: [...doneTasks], memos: memos, year: currentYear, status: equipmentStatus };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], {type : 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `equip_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if(json.data && json.schedule) {
+                        localStorage.setItem('MY_EQUIP_DATA', JSON.stringify(json.data));
+                        localStorage.setItem('MY_SCHEDULE', JSON.stringify(json.schedule));
+                        if(json.done) localStorage.setItem('MY_DONE_TASKS', JSON.stringify(json.done));
+                        if(json.memos) localStorage.setItem('MY_MEMOS', JSON.stringify(json.memos));
+                        if(json.year) localStorage.setItem('MY_YEAR', json.year);
+                        if(json.status) localStorage.setItem('MY_EQUIP_STATUS', JSON.stringify(json.status));
+                        alert('匯入成功！'); location.reload();
+                    } else { alert('檔案格式錯誤'); }
+                } catch(err) { alert('無效的 JSON'); }
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleTaskDone(key, btn) {
+            const card = document.getElementById(`card-${key}`);
+            if(doneTasks.has(key)) {
+                doneTasks.delete(key); card.classList.remove('card-done'); btn.innerHTML = '⭕️';
+            } else {
+                doneTasks.add(key); card.classList.add('card-done'); btn.innerHTML = '✅';
+            }
+            localStorage.setItem('MY_DONE_TASKS', JSON.stringify([...doneTasks]));
+        }
+
+        function populateSelectors() {
+            const selMonth = document.getElementById('selMonth');
+            selMonth.innerHTML = '<option value="all">📅 所有月份</option>';
+            for(let i=1; i<=12; i++) {
+                const opt = document.createElement('option'); opt.value = i; opt.textContent = `${i}月`; selMonth.appendChild(opt);
+            }
+            const selEquip = document.getElementById('selEquip');
+            selEquip.innerHTML = '<option value="all">📦 指定裝備 (全部)</option>';
+            Object.keys(DATA).sort((a,b) => DATA[a].name.localeCompare(DATA[b].name, 'zh-TW')).forEach(k => {
+                const opt = document.createElement('option'); opt.value = k; opt.textContent = DATA[k].name; selEquip.appendChild(opt);
+            });
+        }
+
+        function resetFilters(shouldRender = true) {
+            document.getElementById('selMonth').value = 'all';
+            document.getElementById('selCat').value = 'all';
+            document.getElementById('selType').value = 'all';
+            document.getElementById('selEquip').value = 'all';
+            document.getElementById('searchInput').value = '';
+            if (shouldRender) applyFilters();
+            else { filteredData = [...allData]; renderList("", "all", "all"); }
+        }
+
+        function applyFilters() {
+            const m = document.getElementById('selMonth').value;
+            const c = document.getElementById('selCat').value;
+            const t = document.getElementById('selType').value;
+            const e = document.getElementById('selEquip').value;
+            const q = document.getElementById('searchInput').value.trim();
+            const mVal = m === 'all' ? null : parseInt(m); 
+
+            filteredData = allData.filter(row => {
+                if (mVal !== null && row.m !== mVal) return false;
+                if (t !== 'all') {
+                    if (t === '進廠') { if (row.t !== '進廠' && !row.t.includes('輪車進廠')) return false; }
+                    else if (t === '連主官裝備檢查') { if (row.t !== '連主官裝備檢查') return false; }
+                    else if (t === '週保養') { if (!row.t.includes('週保養')) return false; }
+                    else { if (row.t !== t) return false; }
+                }
+                return row.items.some(it => {
+                    if (c !== 'all' && it.cat !== c) return false;
+                    if (e !== 'all' && it.sys !== e) return false;
+                    if (q) {
+                        const nameMatch = DATA[it.sys].name.includes(q);
+                        const idMatch = it.ids && it.ids.some(id => id.includes(q));
+                        if (!nameMatch && !idMatch) return false;
+                    }
+                    return true;
+                });
+            });
+            renderList(q, c, e);
+        }
+
+        function renderList(searchQuery, catFilter, equipFilter) {
+            const container = document.getElementById('cardContainer');
+            const noData = document.getElementById('noData');
+            container.innerHTML = '';
+            
+            if (filteredData.length === 0) { noData.classList.remove('hidden'); return; }
+            noData.classList.add('hidden');
+            
+            const fragment = document.createDocumentFragment();
+
+            filteredData.forEach((row, i) => {
+                const validItems = row.items.filter(it => {
+                    if(catFilter !== 'all' && it.cat !== catFilter) return false;
+                    if(equipFilter !== 'all' && it.sys !== equipFilter) return false;
+                    if (searchQuery) {
+                         const nameMatch = DATA[it.sys].name.includes(searchQuery);
+                         const idMatch = it.ids && it.ids.some(id => id.includes(searchQuery));
+                         if (!nameMatch && !idMatch) return false;
+                    }
+                    return true;
+                });
+
+                if (validItems.length === 0) return;
+
+                let taskClass = 'task-weekly';
+                if (row.t.includes('進廠') || row.t.includes('B保')) taskClass = 'task-entry';
+                else if (row.t === '連主官裝備檢查' || row.t.includes('S保')) taskClass = 'task-main';
+
+                const cardCats = new Set();
+                const cardItems = new Set();
+                let cardPieces = 0;
+
+                validItems.forEach(it => {
+                    cardCats.add(it.cat);
+                    cardItems.add(it.sys);
+                    cardPieces += (it.bulk || (it.ids ? it.ids.length : 0));
+                });
+
+                const uniqueKey = `${row.d.key}-${row.t}`;
+                const isDone = doneTasks.has(uniqueKey);
+                const memoText = memos[uniqueKey] || '';
+
+                const card = document.createElement('div');
+                card.id = `card-${uniqueKey}`;
+                card.className = `card-base p-4 ${isDone ? 'card-done' : ''}`;
+                
+                let innerHtml = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-xl font-bold">${row.d.str}</span>
+                                <span class="text-xs text-gray-500 font-medium bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">週${row.d.day}</span>
+                                <span class="badge-task ${taskClass}">${row.t}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap flex-shrink-0 dark:bg-gray-700 dark:text-gray-300">
+                                    ${cardCats.size} 類別
+                                </span>
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium whitespace-nowrap flex-shrink-0 dark:bg-gray-700 dark:text-gray-300">
+                                    ${cardItems.size} 項目
+                                </span>
+                                <span class="flex items-center justify-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold whitespace-nowrap flex-shrink-0 dark:bg-blue-900/30 dark:text-blue-400">
+                                    共 ${cardPieces} 件
+                                </span>
+                            </div>
+                            ${memoText ? `<div class="memo-box" onclick="openMemo('${uniqueKey}')"><span>📝</span><span>${memoText}</span></div>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                             <button onclick="openMemo('${uniqueKey}')" class="icon-btn text-yellow-600 hover:bg-yellow-100 text-sm">📝</button>
+                             <button onclick="copyReport(${i})" class="icon-btn text-purple-600 hover:bg-purple-100 text-sm" title="產生回報單">📣</button>
+                             <button onclick="toggleTaskDone('${uniqueKey}', this)" class="icon-btn hover:bg-green-100 text-lg">${isDone ? '✅' : '⭕️'}</button>
+                             <button onclick="copy(${i})" class="icon-btn text-blue-600 hover:bg-blue-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                             </button>
+                        </div>
+                    </div>
+                `;
+
+                validItems.forEach((it, idx) => {
+                    const cnt = it.bulk || (it.ids ? it.ids.length : 0);
+                    const rowId = `sys-${i}-${idx}`; 
+                    const catTheme = CATEGORIES[it.cat] || { css: 'theme-truck' }; 
+                    const hasIds = it.ids && it.ids.length > 0;
+
+                    innerHtml += `
+                        <div id="row-${rowId}" class="sys-card ${catTheme.css} cursor-pointer overflow-hidden" onclick="toggleSys('${rowId}')">
+                            <div class="flex justify-between items-center p-3">
+                                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                                    <span class="font-bold text-[15px] truncate">${DATA[it.sys].name}</span>
+                                    <span class="stats-tag flex-shrink-0">${cnt}</span>
+                                </div>
+                                ${hasIds ? `<div class="text-gray-400 chevron flex-shrink-0 opacity-50 ml-2">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </div>` : ''}
+                            </div>
+                    `;
+
+                    if (hasIds) {
+                        const shouldExpand = searchQuery && (isMatchName || isMatchId);
+                        innerHtml += `<div id="list-${rowId}" class="${shouldExpand ? '' : 'force-hidden'} serial-grid">`;
+                        it.ids.forEach(id => {
+                            const highlight = searchQuery && id.includes(searchQuery);
+                            const status = equipmentStatus[id];
+                            let extraClass = '';
+                            if (status === 'repair') extraClass = 'chip-repair';
+                            else if (status === 'fault') extraClass = 'chip-fault';
+                            
+                            innerHtml += `<div class="serial-chip ${highlight ? 'highlight' : ''} ${extraClass}" onclick="event.stopPropagation(); handleSerialClick(this, '${id}')">${id}</div>`;
+                        });
+                        innerHtml += `</div>`;
+                    }
+                    innerHtml += `</div>`;
+                });
+                card.innerHTML = innerHtml;
+                fragment.appendChild(card);
+            });
+            container.appendChild(fragment);
+        }
+
+        window.toggleSys = function(id) {
+            const content = document.getElementById(`list-${id}`);
+            if(!content) return; 
+            
+            content.classList.toggle('force-hidden');
+            
+            const row = document.getElementById(`row-${id}`);
+            const chevron = row.querySelector('.chevron');
+            if(chevron) {
+                if (content.classList.contains('force-hidden')) {
+                    chevron.classList.remove('expanded');
+                } else {
+                    chevron.classList.add('expanded');
+                }
+            }
+        }
+
+        window.copyReport = function(i) {
+            const row = filteredData[i];
+            const cats = new Set();
+            row.items.forEach(it => cats.add(it.cat));
+            
+            let txt = `【保養進度回報】\n`;
+            txt += `📅 ${currentYear}/${row.d.str} (${row.d.day})\n`;
+            txt += `🛠️ 任務：${row.t}\n\n`;
+            txt += `請各組回報狀況：\n`;
+            txt += `----------------\n`;
+            const catOrder = ['兵器', '通信', '化學', '輪車', '工兵'];
+            const sortedCats = Array.from(cats).sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b));
+            sortedCats.forEach(c => {
+                const icon = CATEGORIES[c] ? CATEGORIES[c].icon : '📦';
+                txt += `${icon} ${c}：\n`;
+            });
+            txt += `----------------\n`;
+            txt += `請確實完成保表及履歷書填寫\n`;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(() => showToast("已複製回報單！")).catch(() => fallbackCopy(txt));
+            } else { fallbackCopy(txt); }
+        }
+
+        window.copy = function(i) {
+            const row = filteredData[i];
+            const c = document.getElementById('selCat').value;
+            const e = document.getElementById('selEquip').value;
+            const q = document.getElementById('searchInput').value.trim();
+
+            const validItems = row.items.filter(it => {
+                if (c !== 'all' && it.cat !== c) return false;
+                if (e !== 'all' && it.sys !== e) return false;
+                if (q) {
+                    const nameMatch = DATA[it.sys].name.includes(q);
+                    const idMatch = it.ids && it.ids.some(id => id.includes(q));
+                    if (!nameMatch && !idMatch) return false;
+                }
+                return true;
+            });
+
+            const cats = new Set(validItems.map(it => it.cat));
+            const items = new Set(validItems.map(it => it.sys));
+            const pieces = validItems.reduce((acc, it) => acc + (it.bulk || (it.ids ? it.ids.length : 0)), 0);
+
+            const uniqueKey = `${row.d.key}-${row.t}`;
+            const memoText = memos[uniqueKey] ? `\n📝 備註：${memos[uniqueKey]}` : '';
+
+            let txt = `【裝備管制通知】\n`;
+            txt += `📅 日期：${currentYear}/${row.d.str} (${row.d.day})\n`;
+            txt += `📝 任務：${row.t}${memoText}\n`;
+            txt += `📊 統計：${cats.size}類 ${items.size}項 共${pieces}件\n`;
+            txt += `----------------\n`;
+            
+            validItems.forEach((it, idx) => {
+                const cnt = it.bulk || (it.ids ? it.ids.length : 0);
+                txt += `${idx+1}. [${it.cat}] ${DATA[it.sys].name} (${cnt})\n`;
+                if (it.ids && it.ids.length > 0) {
+                   const idsWithStatus = it.ids.map(id => {
+                       const st = equipmentStatus[id];
+                       if(st === 'repair') return `${id}(⚠️待修)`;
+                       if(st === 'fault') return `${id}(❌故障)`;
+                       return id;
+                   });
+                   txt += `   序號: ${idsWithStatus.join(', ')}\n`;
+                }
+            });
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(() => showToast("已複製！")).catch(() => fallbackCopy(txt));
+            } else { fallbackCopy(txt); }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px"; textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try { const successful = document.execCommand('copy'); showToast(successful ? "已複製！" : "複製失敗"); } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        window.openSettings = function() {
+            document.getElementById('yearInput').value = currentYear;
+            document.getElementById('jsonEditorData').value = JSON.stringify(DATA, null, 2);
+            document.getElementById('jsonEditorSchedule').value = JSON.stringify(SCHEDULE, null, 2);
+            document.getElementById('settingsModal').classList.remove('hidden');
+            
+            const dash = document.getElementById('statusDashboard');
+            const issues = Object.keys(equipmentStatus).length;
+            if(issues === 0) {
+                dash.innerHTML = '<div class="text-green-600 font-bold">✅ 全連妥善率 100%</div>';
+            } else {
+                let html = '';
+                let issuesMap = {};
+                for (const [id, status] of Object.entries(equipmentStatus)) {
+                    let eqName = "未知裝備";
+                    for(const k in DATA) { if(DATA[k].list && DATA[k].list.includes(id)) { eqName = DATA[k].name; break; } }
+                    if(!issuesMap[eqName]) issuesMap[eqName] = [];
+                    issuesMap[eqName].push({id, status});
+                }
+                
+                for(const [name, items] of Object.entries(issuesMap)) {
+                    html += `<div class="mb-1 font-bold text-gray-700 dark:text-gray-300 mt-2">${name}</div>`;
+                    items.forEach(i => {
+                        const color = i.status === 'repair' ? 'text-yellow-600' : 'text-red-600';
+                        const label = i.status === 'repair' ? '待修' : '故障';
+                        html += `<div class="pl-2 flex justify-between border-b border-gray-100 dark:border-gray-700 py-1"><span>${i.id}</span><span class="${color} font-bold text-xs bg-gray-50 px-2 rounded">${label}</span></div>`;
+                    });
+                }
+                dash.innerHTML = html;
+            }
+        }
+        window.closeSettings = function() { document.getElementById('settingsModal').classList.add('hidden'); }
+        window.saveSettings = function() {
+            try {
+                const nD = JSON.parse(document.getElementById('jsonEditorData').value);
+                const nS = JSON.parse(document.getElementById('jsonEditorSchedule').value);
+                const nY = parseInt(document.getElementById('yearInput').value);
+                
+                localStorage.setItem('MY_EQUIP_DATA', JSON.stringify(nD));
+                localStorage.setItem('MY_SCHEDULE', JSON.stringify(nS));
+                localStorage.setItem('MY_YEAR', nY);
+                location.reload();
+            } catch (e) { alert('JSON 格式錯誤'); }
+        }
+        window.resetToDefaults = function() {
+            if(confirm('警告：此操作將清除所有設定與資料，確定嗎？')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function init() {
+            loadData();
+            buildSchedule();
+            populateSelectors();
+            updateCountdown();
+
+            let debounceTimer;
+            document.getElementById('searchInput').addEventListener('input', () => {
+                clearTimeout(debounceTimer); debounceTimer = setTimeout(applyFilters, 300);
+            });
+            const resizeObs = new ResizeObserver(() => {
+                const h = document.querySelector('.top-bar').offsetHeight;
+                document.getElementById('mainContainer').style.paddingTop = (h + 10) + 'px';
+            });
+            resizeObs.observe(document.querySelector('.top-bar'));
+            applyFilters();
+        }
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
