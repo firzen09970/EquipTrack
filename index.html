@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2942/2942544.png">
 
-    <title>裝備管制 (V16 UI Fix)</title>
+    <title>裝備管制 (V20 CNY Merge Fix)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -149,7 +149,7 @@
                     <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-lg shadow">⚙️</div>
                     <div>
                         <div class="font-bold text-lg leading-none" id="appTitle">裝備管制</div>
-                        <div class="text- text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V16 UI FIX</div>
+                        <div class="text-[10px] text-gray-500 font-medium tracking-wide mt-0.5 dark:text-gray-400">V20 CNY MERGE FIX</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
@@ -191,8 +191,8 @@
     </div>
 
     <!-- Memo Modal -->
-    <div id="memoModal" class="hidden fixed inset-0 z- modal-bg flex items-center justify-center p-4">
-        <div class="bg-white dark:bg- w-full max-w-sm rounded-2xl flex flex-col shadow-2xl p-4">
+    <div id="memoModal" class="hidden fixed inset-0 z-[70] modal-bg flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1C1C1E] w-full max-w-sm rounded-2xl flex flex-col shadow-2xl p-4">
             <h3 class="font-bold text-lg mb-3">📝 新增備註</h3>
             <textarea id="memoInput" class="textarea-glass h-32 mb-4" placeholder="例如：缺潤滑油、待料中..."></textarea>
             <input type="hidden" id="memoKey">
@@ -204,9 +204,9 @@
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="hidden fixed inset-0 z- modal-bg flex items-center justify-center p-4">
-        <div class="bg-white dark:bg- w-full max-w-lg max-h- rounded-2xl flex flex-col shadow-2xl overflow-hidden">
-            <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg- flex justify-between items-center">
+    <div id="settingsModal" class="hidden fixed inset-0 z-[60] modal-bg flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#1C1C1E] w-full max-w-lg max-h-[90vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-[#2C2C2E] flex justify-between items-center">
                 <h3 class="font-bold">設定 & 儀表板</h3>
                 <button onclick="closeSettings()" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">&times;</button>
             </div>
@@ -224,7 +224,7 @@
                     </div>
                 </div>
 
-                <div class="w-full h- bg-gray-200 dark:bg-gray-700 my-2"></div>
+                <div class="w-full h-[1px] bg-gray-200 dark:bg-gray-700 my-2"></div>
 
                 <div class="grid grid-cols-2 gap-3 mb-2">
                     <button onclick="exportData()" class="py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">📤 匯出備份</button>
@@ -249,7 +249,7 @@
 
         const CATEGORIES = { '兵器': { css: 'theme-weap', icon:'⚔️' }, '通信': { css: 'theme-comm', icon:'📡' }, '化學': { css: 'theme-chem', icon:'🧪' }, '輪車': { css: 'theme-truck', icon:'🚚' }, '工兵': { css: 'theme-eng', icon:'🧭' } };
         const DEFAULT_DATA = { 
-            T74: { name: 'T74 排用機槍', cat: '兵器', ids: '007231,007447,007496,007501,007544,007654,009661,009971', groups: },
+            T74: { name: 'T74 排用機槍', cat: '兵器', ids: '007231,007447,007496,007501,007544,007654,009661,009971', groups: [1,1,2,2,2,3,3,3] },
             T75: { name: 'T75 班用機槍', cat: '兵器', ids: '008727,008749,008788,008805,008870,008899,008950,009043,009097,009109,012244,012247,012459,012610,012627,012864,012865,012880,012919,012925,012928,012931,012933,012943,012946,012954,012959,012962,012964,012967,013026,013029,013031,013032,013038,013039', groups: Array(36).fill(0).map((_, i) => i < 18 ? 'A' : 'B') },
             T65K2: { name: 'T65K2 步槍', cat: '兵器', ids: '186074,187921,193648,207145,209263,209439,209697,209823,219834,220007,221303,221554,221566,221640,224376,230470,231016,231849,232622,234718,234742,236236,236465,236967,237338,314846,332587,332607,332668,332754,332762,337624,362245,362411,362415,362676,363053,364122,364896,367128,367730,368657,369550,370013,370200,370374,383020,383715,385207,385332,386038,386251,386399,388131,389145,389516,390010,390539,391124,391958,392012,392166,392167,393872,393947,394347,394468,394681,394777,394861,394863,394902,394907,394913,394923,395042,395065,395109,395113,395167,395348,395555,395671,395860,396172,396176,396207,396356,396359,396597,397068,397153,397273,397314,398005,398192,398389,398432,398934,399146,399327,399595,400655,400847,401766,402894,403128,403843,404390,405120,405205,405700,406970,407492,407620,408250' },
             T85: { name: 'T85 榴彈發射器', cat: '兵器', ids: '000032,000155,001750,001780,001998,008454,008834,008890,009004,009759,010532,010681,011186,011293,011358,011498,011522,011662,011820,011906,012571,012589,012695,012760,012775,012845,014580,016641,018164,018390,019120,019191,019202,019261,019674,021606' },
@@ -271,8 +271,19 @@
         };
         const DEFAULT_SCHEDULE = {1:{m:19,t:20,w:21,f:23},2:{m:23,t:24,w:25,f:27},3:{m:23,t:24,w:25,f:27},4:{m:20,t:21,w:22,f:24},5:{m:25,t:26,w:27,f:29},6:{m:22,t:23,w:24,f:26},7:{m:20,t:21,w:22,f:24},8:{m:24,t:25,w:26,f:28},9:{m:21,t:22,w:23,f:25},10:{m:19,t:20,w:21,f:23},11:{m:23,t:24,w:25,f:27},12:{m:21,t:22,w:23,f:25}};
 
+        // 🔥 調整春節範圍，確保 2/23 (一) 連主檢正常運作
+        // 2026 春節結束於 2/22 (日)
+        const CNY_RANGES = [
+            { start: new Date(2025, 0, 25), end: new Date(2025, 1, 2) },
+            { start: new Date(2026, 1, 16), end: new Date(2026, 1, 22) }, 
+            { start: new Date(2027, 1, 5), end: new Date(2027, 1, 14) },
+            { start: new Date(2028, 0, 25), end: new Date(2028, 1, 3) },
+            { start: new Date(2029, 1, 12), end: new Date(2029, 1, 20) },
+            { start: new Date(2030, 1, 2), end: new Date(2030, 1, 10) }
+        ];
+
         let DATA = {}, SCHEDULE = {};
-        let allData = [], filteredData =[], currentYear = 115;
+        let allData = [], filteredData = [], currentYear = 115;
         let doneTasks = new Set();
         let memos = {};
         let equipmentStatus = {};
@@ -286,7 +297,6 @@
             const savedYear = localStorage.getItem('MY_YEAR');
             const savedStatus = localStorage.getItem('MY_EQUIP_STATUS');
             
-            // 🔥 DATA DOCTOR
             try {
                 DATA = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(DEFAULT_DATA));
             } catch(e) {
@@ -302,17 +312,16 @@
 
             document.getElementById('appTitle').textContent = `${currentYear}年 裝備管制`;
 
-            // 🔥 FORCE FIX
             Object.keys(DATA).forEach(k => { 
-                if (DATA.ids) {
-                    if (typeof DATA.ids === 'string') {
-                        DATA.list = DATA.ids.split(',').map(s => s.trim()).filter(s => s !== '');
-                    } else if (Array.isArray(DATA.ids)) {
-                        DATA.list = DATA.ids; 
+                if (DATA[k].ids) {
+                    if (typeof DATA[k].ids === 'string') {
+                        DATA[k].list = DATA[k].ids.split(',').map(s => s.trim()).filter(s => s !== '');
+                    } else if (Array.isArray(DATA[k].ids)) {
+                        DATA[k].list = DATA[k].ids; 
                     }
-                } else if (!DATA.list && DEFAULT_DATA && DEFAULT_DATA.ids) {
-                    DATA.ids = DEFAULT_DATA.ids;
-                    DATA.list = DATA.ids.split(',');
+                } else if (!DATA[k].list && DEFAULT_DATA[k] && DEFAULT_DATA[k].ids) {
+                    DATA[k].ids = DEFAULT_DATA[k].ids;
+                    DATA[k].list = DATA[k].ids.split(',');
                 }
             });
             if(localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
@@ -320,12 +329,15 @@
 
         function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
         
-        // 🔥 增加 2026 春節國定假日的判斷
+        function isChineseNewYear(d) {
+            const t = d.getTime();
+            return CNY_RANGES.some(range => t >= range.start.getTime() && t <= range.end.getTime());
+        }
+
         function checkIsHoliday(d) { 
-            const y = d.getFullYear(), m = d.getMonth(), dt = d.getDate();
+            const m = d.getMonth(), dt = d.getDate();
             if (m === 0 && dt === 1) return true; // 元旦
-            if (y === 2026 && m === 1 && dt >= 16 && dt <= 20) return true; // 2026 春節
-            return false;
+            return isChineseNewYear(d);
         }
         
         function isWorkDay(d) { return !isWeekend(d) && !checkIsHoliday(d); }
@@ -340,77 +352,100 @@
             return null;
         }
         function getFridays(y, m) {
-            let r =[], d = new Date(y, m-1, 1);
+            let r = [], d = new Date(y, m-1, 1);
             while (d.getMonth() === m-1) { if (d.getDay() === 5) r.push(new Date(d)); d.setDate(d.getDate() + 1); }
             return r;
         }
         function fmt(d) {
             const m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
-            return { str: `${m}.${day}`, day:, key: parseInt(`${d.getFullYear()}${m}${day}`), obj: d };
+            return { str: `${m}.${day}`, day: ['日','一','二','三','四','五','六'][d.getDay()], key: parseInt(`${d.getFullYear()}${m}${day}`), obj: d };
         }
 
         function buildSchedule() {
-            let rawEvents =[];
+            let rawEvents = [];
             const y = currentYear + 1911; 
             for (let m = 1; m <= 12; m++) {
-                const s = SCHEDULE; if (!s) continue; 
+                const s = SCHEDULE[m]; if (!s) continue; 
                 const mainMon = new Date(y, m-1, s.m), mainTue = new Date(y, m-1, s.t), mainWed = new Date(y, m-1, s.w), mainFriKey = fmt(new Date(y, m-1, s.f)).key;
                 const wd1 = getWorkDay(y, m, 1), wd2 = getWorkDay(y, m, 2);
                 
+                // 一般排程：連主檢、進廠等，僅需避開假日
                 const add = (d, t, sys, filterFn) => {
                     if (!d) return;
                     let finalDate = new Date(d);
-
-                    // 🔥 針對 2026 年過年 (2/16 ~ 2/20)，將當週任務提前一週實施
-                    if (finalDate.getFullYear() === 2026 && finalDate.getMonth() === 1 && finalDate.getDate() >= 16 && finalDate.getDate() <= 20) {
-                        finalDate.setDate(finalDate.getDate() - 7);
+                    while (checkIsHoliday(finalDate) || isWeekend(finalDate)) {
+                         finalDate.setDate(finalDate.getDate() + 1);
                     }
-
-                    while (checkIsHoliday(finalDate) || isWeekend(finalDate)) finalDate.setDate(finalDate.getDate() + 1);
-                    
-                    const sysData = DATA; if(!sysData) return;
-                    // 🔥 確保 ids 是陣列
-                    let ids = sysData.list ||[];
+                    const sysData = DATA[sys]; if(!sysData) return;
+                    let ids = sysData.list || [];
                     if(filterFn) ids = ids.filter(filterFn);
                     rawEvents.push({ m, d: fmt(finalDate), t, sys, cat: sysData.cat, ids, bulk: sysData.bulk, ts: finalDate.getTime() });
                 };
 
                 const eg = m % 3 || 3;
-                add(wd1, '進廠', 'T74', (_, i) => DATA.T74.groups === eg);
-                add(mainWed, '連主官裝備檢查', 'T74', (_, i) => DATA.T74.groups !== eg);
-                add(wd1, '進廠', 'T75', (_, i) => DATA.T75.groups === 'A');
-                add(wd2, '進廠', 'T75', (_, i) => DATA.T75.groups === 'B');
+                add(wd1, '進廠', 'T74', (_, i) => DATA.T74.groups[i] === eg);
+                add(mainWed, '連主官裝備檢查', 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                add(wd1, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'A');
+                add(wd2, '進廠', 'T75', (_, i) => DATA.T75.groups[i] === 'B');
                 add(mainWed, '連主官裝備檢查', 'T65K2');
                 const w1f = getWeekday(y, m, 1, 5);
-                if (w1f && fmt(w1f).key !== mainFriKey) add(w1f, `${m}月第1週週保養`, 'T65K2');.forEach(s => add(mainWed, '連主官裝備檢查', s));.forEach(s => add(mainTue, '連主官裝備檢查', s));.forEach(s => { add(wd1, '進廠', s); add(mainTue, '連主官裝備檢查', s); });.forEach(s => { add(wd2, '進廠', s); add(mainMon, '連主官裝備檢查', s); });.forEach(s => add(mainMon, '連主官裝備檢查', s));
+                if (w1f && fmt(w1f).key !== mainFriKey) add(w1f, `${m}月第1週週保養`, 'T65K2');
+                ['T85','M1911A1','M1911'].forEach(s => add(mainWed, '連主官裝備檢查', s));
+                ['TRUCK', 'COMPASS', 'TS71', 'KY-2000A'].forEach(s => add(mainTue, '連主官裝備檢查', s));
+                ['MHR-112','PRC-37C'].forEach(s => { add(wd1, '進廠', s); add(mainTue, '連主官裝備檢查', s); });
+                ['M8A1','LS-920'].forEach(s => { add(wd2, '進廠', s); add(mainMon, '連主官裝備檢查', s); });
+                ['T3-75','M256','WAR_FILTER','62_FILTER','T4-86'].forEach(s => add(mainMon, '連主官裝備檢查', s));
                 
                 const daysInMonth = new Date(y, m, 0).getDate();
                 const isBigMonth = daysInMonth === 31;
-                getFridays(y, m).forEach((f, idx, arr) => {
-                    if (fmt(f).key === mainFriKey) return;
-                    const w = Math.ceil(f.getDate() / 7);.forEach(s => add(f, `${m}月第${w}週週保養`, s));
-                    if ((isBigMonth && idx === arr.length - 1) || (!isBigMonth && w === 1)) add(f, `${m}月第${w}週週保養`, 'T3-75');
-                    
-                    // 🔥 工兵每週二保養
-                    if (w === 2) {.forEach(s => add(f, `${m}月第${w}週週保養`, s));
-                    }
+                
+                // 🔥 週保養合併邏輯
+                // 定義一個內部函式，用來加入「某週」的裝備到「指定日期」
+                const addWeeklyItems = (targetDate, targetName, w) => {
+                     ['M8A1','LS-920','MHR-112','PRC-37C','KY-2000A','TRUCK'].forEach(s => add(targetDate, targetName, s));
+                     if ((isBigMonth && w === 5) || (!isBigMonth && w === 1)) add(targetDate, targetName, 'T3-75'); // 最後一週或第一週
+                     if (w === 2) ['COMPASS', 'TS71'].forEach(s => add(targetDate, targetName, s));
+                     if (w === 3) {
+                         ['M1911', 'M1911A1', 'T85'].forEach(s => add(targetDate, targetName, s));
+                         add(targetDate, targetName, 'T74', (_, i) => DATA.T74.groups[i] !== eg);
+                     }
+                };
 
-                    if (w === 3) {.forEach(s => add(f, `${m}月第${w}週週保養`, s));
-                         add(f, `${m}月第${w}週週保養`, 'T74', (_, i) => DATA.T74.groups !== eg);
+                const fridays = getFridays(y, m);
+                fridays.forEach((f, idx) => {
+                    if (fmt(f).key === mainFriKey) return;
+                    if (isChineseNewYear(f)) return; // 若當週是過年，直接跳過，不產生卡片
+
+                    const w = Math.ceil(f.getDate() / 7);
+                    const taskName = `${m}月第${w}週週保養`;
+                    
+                    // 1. 加入當週原本的裝備
+                    addWeeklyItems(f, taskName, w);
+
+                    // 2. 預判下一週：如果下週五是過年，把下週的裝備也加進來這週
+                    // 下一個週五日期
+                    const nextF = new Date(f);
+                    nextF.setDate(f.getDate() + 7);
+                    
+                    if (nextF.getMonth() === f.getMonth() && isChineseNewYear(nextF)) {
+                         const nextW = Math.ceil(nextF.getDate() / 7);
+                         // 注意：日期仍使用本週五(f)，名稱使用本週名稱，但內容加入下週(nextW)的裝備
+                         addWeeklyItems(f, taskName, nextW);
                     }
                 });
             }
 
             let truckDate = new Date(2025, 7, 25);
             let cycleIdx = 0;
-            const cyclePattern =;
+            const cyclePattern = ['B保', 'S保', 'A保', 'S保'];
             for(let i=0; i<40; i++) {
                 if (truckDate.getFullYear() > y) break; 
                 let actualDate = new Date(truckDate);
                 while(isWeekend(actualDate) || checkIsHoliday(actualDate)) actualDate.setDate(actualDate.getDate() + 1);
+                
                 if (actualDate.getFullYear() === y) {
-                    const taskName = `輪車進廠 (${cyclePattern})`; 
-                    if (DATA) rawEvents.push({ m: actualDate.getMonth() + 1, d: fmt(actualDate), t: taskName, sys: 'TRUCK', cat: '輪車', ids: DATA.list||[], bulk: 0, ts: actualDate.getTime() });
+                    const taskName = `輪車進廠 (${cyclePattern[cycleIdx % 4]})`; 
+                    if (DATA['TRUCK']) rawEvents.push({ m: actualDate.getMonth() + 1, d: fmt(actualDate), t: taskName, sys: 'TRUCK', cat: '輪車', ids: DATA['TRUCK'].list||[], bulk: 0, ts: actualDate.getTime() });
                 }
                 truckDate.setMonth(truckDate.getMonth() + 6);
                 cycleIdx++;
@@ -419,17 +454,32 @@
             const groupedMap = new Map();
             rawEvents.forEach(e => {
                 const k = `${e.d.key}_${e.t}`;
-                if (!groupedMap.has(k)) groupedMap.set(k, { m: e.m, d: e.d, t: e.t, ts: e.ts, items:[] });
+                if (!groupedMap.has(k)) {
+                    groupedMap.set(k, { m: e.m, d: e.d, t: e.t, ts: e.ts, items: [] });
+                }
                 const group = groupedMap.get(k);
-                group.items.push({ sys: e.sys, ids: e.ids, bulk: e.bulk, cat: e.cat });
+
+                // 🔥 去重複與合併邏輯
+                const existingItem = group.items.find(i => i.sys === e.sys);
+                if (existingItem) {
+                    // 若已存在：合併序號
+                    if (e.ids && e.ids.length > 0) {
+                        if (!existingItem.ids) existingItem.ids = [];
+                        // 合併並去重
+                        existingItem.ids = [...new Set([...existingItem.ids, ...e.ids])];
+                    }
+                } else {
+                    // 若不存在：新增
+                    group.items.push({ sys: e.sys, ids: e.ids, bulk: e.bulk, cat: e.cat });
+                }
             });
 
             allData = Array.from(groupedMap.values()).map(group => {
-                const catOrder =;
+                const catOrder = ['兵器', '通信', '化學', '工兵', '輪車'];
                 group.items.sort((a, b) => {
                     const idxA = catOrder.indexOf(a.cat), idxB = catOrder.indexOf(b.cat);
                     if (idxA !== idxB) return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-                    return DATA.name.localeCompare(DATA.name, 'zh-TW');
+                    return DATA[a.sys].name.localeCompare(DATA[b.sys].name, 'zh-TW');
                 });
                 return group;
             }).sort((a, b) => a.d.key - b.d.key);
@@ -441,7 +491,7 @@
             const el = document.getElementById('countdownContainer');
             
             if (nextEventIdx !== -1) {
-                const nextEvent = allData;
+                const nextEvent = allData[nextEventIdx];
                 const diffDays = Math.ceil(Math.abs(nextEvent.ts - today.getTime()) / (1000 * 60 * 60 * 24)); 
                 let msg = diffDays === 0 ? "⚠️ 任務就在今天！" : `⏳ 距離下次任務還有 <b>${diffDays}</b> 天`;
                 el.className = 'countdown-card';
@@ -486,15 +536,15 @@
 
         function handleSerialClick(el, serial) {
             if(isRepairMode) {
-                let current = equipmentStatus;
-                if (!current) { equipmentStatus = 'repair'; }
-                else if (current === 'repair') { equipmentStatus = 'fault'; }
-                else { delete equipmentStatus; }
+                let current = equipmentStatus[serial];
+                if (!current) { equipmentStatus[serial] = 'repair'; }
+                else if (current === 'repair') { equipmentStatus[serial] = 'fault'; }
+                else { delete equipmentStatus[serial]; }
                 localStorage.setItem('MY_EQUIP_STATUS', JSON.stringify(equipmentStatus));
                 
                 el.classList.remove('chip-repair', 'chip-fault', 'checked-item');
-                if (equipmentStatus === 'repair') el.classList.add('chip-repair');
-                else if (equipmentStatus === 'fault') el.classList.add('chip-fault');
+                if (equipmentStatus[serial] === 'repair') el.classList.add('chip-repair');
+                else if (equipmentStatus[serial] === 'fault') el.classList.add('chip-fault');
             } else {
                 el.classList.toggle('chip-checked');
                 if (navigator.vibrate) navigator.vibrate(10);
@@ -503,7 +553,7 @@
 
         function openMemo(key) {
             document.getElementById('memoKey').value = key;
-            document.getElementById('memoInput').value = memos || '';
+            document.getElementById('memoInput').value = memos[key] || '';
             document.getElementById('memoModal').classList.remove('hidden');
             document.getElementById('memoInput').focus();
         }
@@ -511,14 +561,14 @@
         function saveMemo() {
             const key = document.getElementById('memoKey').value;
             const text = document.getElementById('memoInput').value.trim();
-            if(text) memos = text; else delete memos;
+            if(text) memos[key] = text; else delete memos[key];
             localStorage.setItem('MY_MEMOS', JSON.stringify(memos));
             closeMemo(); applyFilters(); 
         }
 
         function exportData() {
-            const backup = { data: DATA, schedule: SCHEDULE, done:, memos: memos, year: currentYear, status: equipmentStatus };
-            const blob = new Blob(, {type : 'application/json'});
+            const backup = { data: DATA, schedule: SCHEDULE, done: [...doneTasks], memos: memos, year: currentYear, status: equipmentStatus };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], {type : 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = `equip_backup_${new Date().toISOString().slice(0,10)}.json`;
@@ -526,7 +576,7 @@
         }
 
         function importData(input) {
-            const file = input.files;
+            const file = input.files[0];
             if(!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -553,7 +603,7 @@
             } else {
                 doneTasks.add(key); card.classList.add('card-done'); btn.innerHTML = '✅';
             }
-            localStorage.setItem('MY_DONE_TASKS', JSON.stringify());
+            localStorage.setItem('MY_DONE_TASKS', JSON.stringify([...doneTasks]));
         }
 
         function populateSelectors() {
@@ -564,8 +614,8 @@
             }
             const selEquip = document.getElementById('selEquip');
             selEquip.innerHTML = '<option value="all">📦 指定裝備 (全部)</option>';
-            Object.keys(DATA).sort((a,b) => DATA.name.localeCompare(DATA.name, 'zh-TW')).forEach(k => {
-                const opt = document.createElement('option'); opt.value = k; opt.textContent = DATA.name; selEquip.appendChild(opt);
+            Object.keys(DATA).sort((a,b) => DATA[a].name.localeCompare(DATA[b].name, 'zh-TW')).forEach(k => {
+                const opt = document.createElement('option'); opt.value = k; opt.textContent = DATA[k].name; selEquip.appendChild(opt);
             });
         }
 
@@ -576,7 +626,7 @@
             document.getElementById('selEquip').value = 'all';
             document.getElementById('searchInput').value = '';
             if (shouldRender) applyFilters();
-            else { filteredData =; renderList("", "all", "all"); }
+            else { filteredData = [...allData]; renderList("", "all", "all"); }
         }
 
         function applyFilters() {
@@ -599,7 +649,7 @@
                     if (c !== 'all' && it.cat !== c) return false;
                     if (e !== 'all' && it.sys !== e) return false;
                     if (q) {
-                        const nameMatch = DATA.name.includes(q);
+                        const nameMatch = DATA[it.sys].name.includes(q);
                         const idMatch = it.ids && it.ids.some(id => id.includes(q));
                         if (!nameMatch && !idMatch) return false;
                     }
@@ -624,7 +674,7 @@
                     if(catFilter !== 'all' && it.cat !== catFilter) return false;
                     if(equipFilter !== 'all' && it.sys !== equipFilter) return false;
                     if (searchQuery) {
-                         const nameMatch = DATA.name.includes(searchQuery);
+                         const nameMatch = DATA[it.sys].name.includes(searchQuery);
                          const idMatch = it.ids && it.ids.some(id => id.includes(searchQuery));
                          if (!nameMatch && !idMatch) return false;
                     }
@@ -649,7 +699,7 @@
 
                 const uniqueKey = `${row.d.key}-${row.t}`;
                 const isDone = doneTasks.has(uniqueKey);
-                const memoText = memos || '';
+                const memoText = memos[uniqueKey] || '';
 
                 const card = document.createElement('div');
                 card.id = `card-${uniqueKey}`;
@@ -690,15 +740,14 @@
                 validItems.forEach((it, idx) => {
                     const cnt = it.bulk || (it.ids ? it.ids.length : 0);
                     const rowId = `sys-${i}-${idx}`; 
-                    const catTheme = CATEGORIES || { css: 'theme-truck' }; 
+                    const catTheme = CATEGORIES[it.cat] || { css: 'theme-truck' }; 
                     const hasIds = it.ids && it.ids.length > 0;
 
-                    // 🔥 確保 force-hidden 正常作動
                     innerHtml += `
                         <div id="row-${rowId}" class="sys-card ${catTheme.css} cursor-pointer overflow-hidden" onclick="toggleSys('${rowId}')">
                             <div class="flex justify-between items-center p-3">
                                 <div class="flex items-center gap-2 overflow-hidden flex-1">
-                                    <span class="font-bold text- truncate">${DATA.name}</span>
+                                    <span class="font-bold text-[15px] truncate">${DATA[it.sys].name}</span>
                                     <span class="stats-tag flex-shrink-0">${cnt}</span>
                                 </div>
                                 ${hasIds ? `<div class="text-gray-400 chevron flex-shrink-0 opacity-50 ml-2">
@@ -708,14 +757,11 @@
                     `;
 
                     if (hasIds) {
-                        const isMatchName = searchQuery && DATA.name.includes(searchQuery);
-                        const isMatchId = searchQuery && it.ids.some(id => id.includes(searchQuery));
                         const shouldExpand = searchQuery && (isMatchName || isMatchId);
-                        
                         innerHtml += `<div id="list-${rowId}" class="${shouldExpand ? '' : 'force-hidden'} serial-grid">`;
                         it.ids.forEach(id => {
                             const highlight = searchQuery && id.includes(searchQuery);
-                            const status = equipmentStatus;
+                            const status = equipmentStatus[id];
                             let extraClass = '';
                             if (status === 'repair') extraClass = 'chip-repair';
                             else if (status === 'fault') extraClass = 'chip-fault';
@@ -750,7 +796,7 @@
         }
 
         window.copyReport = function(i) {
-            const row = filteredData;
+            const row = filteredData[i];
             const cats = new Set();
             row.items.forEach(it => cats.add(it.cat));
             
@@ -759,10 +805,10 @@
             txt += `🛠️ 任務：${row.t}\n\n`;
             txt += `請各組回報狀況：\n`;
             txt += `----------------\n`;
-            const catOrder =;
+            const catOrder = ['兵器', '通信', '化學', '輪車', '工兵'];
             const sortedCats = Array.from(cats).sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b));
             sortedCats.forEach(c => {
-                const icon = CATEGORIES ? CATEGORIES.icon : '📦';
+                const icon = CATEGORIES[c] ? CATEGORIES[c].icon : '📦';
                 txt += `${icon} ${c}：\n`;
             });
             txt += `----------------\n`;
@@ -774,7 +820,7 @@
         }
 
         window.copy = function(i) {
-            const row = filteredData;
+            const row = filteredData[i];
             const c = document.getElementById('selCat').value;
             const e = document.getElementById('selEquip').value;
             const q = document.getElementById('searchInput').value.trim();
@@ -783,7 +829,7 @@
                 if (c !== 'all' && it.cat !== c) return false;
                 if (e !== 'all' && it.sys !== e) return false;
                 if (q) {
-                    const nameMatch = DATA.name.includes(q);
+                    const nameMatch = DATA[it.sys].name.includes(q);
                     const idMatch = it.ids && it.ids.some(id => id.includes(q));
                     if (!nameMatch && !idMatch) return false;
                 }
@@ -795,7 +841,7 @@
             const pieces = validItems.reduce((acc, it) => acc + (it.bulk || (it.ids ? it.ids.length : 0)), 0);
 
             const uniqueKey = `${row.d.key}-${row.t}`;
-            const memoText = memos ? `\n📝 備註：${memos}` : '';
+            const memoText = memos[uniqueKey] ? `\n📝 備註：${memos[uniqueKey]}` : '';
 
             let txt = `【裝備管制通知】\n`;
             txt += `📅 日期：${currentYear}/${row.d.str} (${row.d.day})\n`;
@@ -805,10 +851,10 @@
             
             validItems.forEach((it, idx) => {
                 const cnt = it.bulk || (it.ids ? it.ids.length : 0);
-                txt += `${idx+1}. ${DATA.name} (${cnt})\n`;
+                txt += `${idx+1}. [${it.cat}] ${DATA[it.sys].name} (${cnt})\n`;
                 if (it.ids && it.ids.length > 0) {
                    const idsWithStatus = it.ids.map(id => {
-                       const st = equipmentStatus;
+                       const st = equipmentStatus[id];
                        if(st === 'repair') return `${id}(⚠️待修)`;
                        if(st === 'fault') return `${id}(❌故障)`;
                        return id;
@@ -852,14 +898,14 @@
             } else {
                 let html = '';
                 let issuesMap = {};
-                for (const of Object.entries(equipmentStatus)) {
+                for (const [id, status] of Object.entries(equipmentStatus)) {
                     let eqName = "未知裝備";
-                    for(const k in DATA) { if(DATA.list && DATA.list.includes(id)) { eqName = DATA.name; break; } }
-                    if(!issuesMap) issuesMap = [];
-                    issuesMap.push({id, status});
+                    for(const k in DATA) { if(DATA[k].list && DATA[k].list.includes(id)) { eqName = DATA[k].name; break; } }
+                    if(!issuesMap[eqName]) issuesMap[eqName] = [];
+                    issuesMap[eqName].push({id, status});
                 }
                 
-                for(const of Object.entries(issuesMap)) {
+                for(const [name, items] of Object.entries(issuesMap)) {
                     html += `<div class="mb-1 font-bold text-gray-700 dark:text-gray-300 mt-2">${name}</div>`;
                     items.forEach(i => {
                         const color = i.status === 'repair' ? 'text-yellow-600' : 'text-red-600';
